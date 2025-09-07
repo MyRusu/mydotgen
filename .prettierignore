@@ -1,0 +1,14 @@
+.next/
+node_modules/
+coverage/
+dist/
+out/
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Env
+.env*
+
