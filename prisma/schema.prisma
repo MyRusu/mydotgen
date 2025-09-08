@@ -35,6 +35,8 @@ model PixelArt {
   publishEntries PublishEntry[]
 
   @@index([userId])
+  @@index([userId, updatedAt])
+  @@index([public, updatedAt])
 }
 
 model ImageAsset {
@@ -65,5 +67,5 @@ model PublishEntry {
   art PixelArt @relation(fields: [artId], references: [id], onDelete: Cascade)
 
   @@index([artId])
+  @@index([public, updatedAt])
 }
-
