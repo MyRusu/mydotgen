@@ -2,9 +2,10 @@ import Link from 'next/link';
 import prisma from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 
-export default async function ArtDetailPage({ params }: any) {
+export default async function ArtDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const art = await prisma.pixelArt.findUnique({
-    where: { id: params.id },
+    where: { id },
     select: { id: true, title: true, size: true, public: true, updatedAt: true },
   });
   if (!art) return notFound();

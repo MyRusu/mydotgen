@@ -22,7 +22,7 @@ export default async function SignInPage() {
       <h1>サインイン</h1>
       <p>GitHub を使用して認証します。</p>
       <p style={{ marginTop: 12 }}>
-        <Link href="/api/auth/signin" style={{ color: '#06c' }}>GitHub でサインイン</Link>
+        <Link href="/api/auth/signin/github" style={{ color: '#06c' }}>GitHub でサインイン</Link>
       </p>
       <p style={{ marginTop: 12 }}>
         <Link href="/" style={{ color: '#06c' }}>トップへ戻る</Link>

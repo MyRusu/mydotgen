@@ -1,10 +1,14 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import PixelArtEditorConform from '@/components/editor/PixelArtEditorConform';
-import { getArtById } from '@/lib/arts';
+import prisma from '@/lib/prisma';
 
-export default async function EditEditorPage({ params }: any) {
-  const art = await getArtById(params.id);
+export default async function EditEditorPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const art = await prisma.pixelArt.findUnique({
+    where: { id },
+    select: { id: true, title: true, size: true, pixels: true },
+  });
 
 
   if (!art) {
@@ -22,7 +26,7 @@ export default async function EditEditorPage({ params }: any) {
         <Link href={`/art/${art.id}`} style={{ color: '#06c' }}>詳細へ戻る</Link>
       </div>
       <PixelArtEditorConform
-        initial={{ id: art.id, title: art.title, size: art.size, pixels: art.pixels }}
+        initial={{ id: art.id, title: art.title, size: art.size as 16 | 32 | 64, pixels: (art.pixels as any) as number[] }}
       />
     </main>
   );
