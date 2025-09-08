@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { pixelateFromImage } from '@/lib/image/pixelate';
 
 type ApiResponse =
   | { ok: true; image: string; revisedPrompt?: string; asset?: { url: string; key: string } }
@@ -9,7 +10,10 @@ type ApiResponse =
 
 export default function GeneratePage() {
   const [prompt, setPrompt] = useState('pixel art slime, 16-bit, simple');
-  const [size, setSize] = useState<number>(512);
+  // OpenAI への生成は 1024 固定（UI には出さない）
+  const OPENAI_SIZE = 1024;
+  // 出力（16/32/64）の選択
+  const [outputSize, setOutputSize] = useState<16 | 32 | 64>(32);
   const [background, setBackground] = useState<'transparent' | 'opaque'>('transparent');
   const [store, setStore] = useState<boolean>(false);
   const [artId, setArtId] = useState<string>('');
@@ -37,7 +41,7 @@ export default function GeneratePage() {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, size, background, store, artId: artId || undefined }),
+        body: JSON.stringify({ prompt, size: OPENAI_SIZE, background, store, artId: artId || undefined }),
       });
       const json: ApiResponse = await res.json();
       if (res.status === 429) {
@@ -50,7 +54,9 @@ export default function GeneratePage() {
         setError(json.message);
         return;
       }
-      setImage(json.image);
+      // 受け取った 1024x1024 の画像を 16/32/64 にピクセル化縮小
+      const down = await pixelateDataUrl(json.image, outputSize);
+      setImage(down);
       setRevised(json.revisedPrompt);
       setAssetUrl(json.asset?.url);
     } catch (e: any) {
@@ -64,10 +70,43 @@ export default function GeneratePage() {
     if (!image) return;
     const a = document.createElement('a');
     a.href = image;
-    a.download = `generated_${size}.png`;
+    a.download = `generated_${outputSize}.png`;
     document.body.appendChild(a);
     a.click();
     a.remove();
+  }
+
+  async function pixelateDataUrl(dataUrl: string, grid: 16 | 32 | 64): Promise<string> {
+    // DataURL から画像を読み込み
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = (e) => reject(e);
+      i.src = dataUrl;
+    });
+    // 画像を grid にピクセル化
+    const res = pixelateFromImage(img, grid, { mode: 'cover', background: 'transparent' });
+    // 小キャンバスに配置
+    const base = document.createElement('canvas');
+    base.width = grid;
+    base.height = grid;
+    const bctx = base.getContext('2d', { willReadFrequently: true })!;
+    bctx.putImageData(res.imageData, 0, 0);
+    // 見やすく拡大（16倍）
+    const scale = 16;
+    const out = document.createElement('canvas');
+    out.width = grid * scale;
+    out.height = grid * scale;
+    const octx = out.getContext('2d')!;
+    octx.imageSmoothingEnabled = false;
+    if (background === 'opaque') {
+      octx.fillStyle = '#fff';
+      octx.fillRect(0, 0, out.width, out.height);
+    } else {
+      octx.clearRect(0, 0, out.width, out.height);
+    }
+    octx.drawImage(base, 0, 0, grid, grid, 0, 0, out.width, out.height);
+    return out.toDataURL('image/png');
   }
 
   return (
@@ -80,11 +119,11 @@ export default function GeneratePage() {
         </label>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
           <label>
-            サイズ
-            <select value={size} onChange={(e) => setSize(Number(e.target.value))} style={{ marginLeft: 6 }}>
-              <option value={256}>256</option>
-              <option value={512}>512</option>
-              <option value={1024}>1024</option>
+            出力サイズ
+            <select value={outputSize} onChange={(e) => setOutputSize(Number(e.target.value) as 16 | 32 | 64)} style={{ marginLeft: 6 }}>
+              <option value={16}>16</option>
+              <option value={32}>32</option>
+              <option value={64}>64</option>
             </select>
           </label>
           <label>
