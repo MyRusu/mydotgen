@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import prisma from '@/lib/prisma';
+import { logEvent } from '@/lib/log';
 import {
   PixelArtCreateInputSchema,
   PixelArtUpdateInputSchema,
@@ -44,6 +45,7 @@ export async function createPixelArt(input: unknown) {
     },
     select: { id: true, title: true, size: true, public: true, updatedAt: true },
   });
+  logEvent('pixel.create', { userId, id: created.id, size: data.size, titleLen: data.title.length });
   return created;
 }
 
@@ -58,6 +60,7 @@ export async function updatePixelArt(input: unknown) {
     data: { title: data.title, size: data.size, public: data.public ?? false, pixels: data.pixels },
     select: { id: true, title: true, size: true, public: true, updatedAt: true },
   });
+  logEvent('pixel.update', { userId, id: updated.id, size: data.size, titleLen: data.title.length });
   return updated;
 }
 
@@ -69,6 +72,7 @@ export async function deletePixelArt(input: unknown) {
   await prisma.imageAsset.deleteMany({ where: { artId: id } });
   await prisma.publishEntry.deleteMany({ where: { artId: id } });
   await prisma.pixelArt.delete({ where: { id } });
+  logEvent('pixel.delete', { userId, id });
   return { ok: true } as const;
 }
 
@@ -98,11 +102,13 @@ export async function savePixelArt(prevState: SaveState, formData: FormData): Pr
       data: { userId, title, size, public: false, pixels },
       select: { id: true },
     });
+    logEvent('pixel.save.create', { userId, id: created.id, size, titleLen: title.length });
     redirect(`/art/${created.id}`);
   } else {
     const existing = await prisma.pixelArt.findUnique({ where: { id }, select: { userId: true } });
     if (!existing || existing.userId !== userId) return { ok: false, errors: ['Forbidden'] };
     await prisma.pixelArt.update({ where: { id }, data: { title, size, pixels } });
+    logEvent('pixel.save.update', { userId, id, size, titleLen: title.length });
     redirect(`/art/${id}`);
   }
 }
