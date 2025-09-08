@@ -23,7 +23,8 @@
     "@conform-to/react": "latest",
     "@conform-to/zod": "latest",
     "@prisma/client": "latest",
-    "next-auth": "latest"
+    "next-auth": "latest",
+    "openai": "^4.56.0"
   },
   "devDependencies": {
     "@types/node": "latest",
