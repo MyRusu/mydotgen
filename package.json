@@ -13,26 +13,29 @@
     "db:down": "docker compose down",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
-    "next": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "zod": "^3.23.8",
     "@conform-to/react": "latest",
     "@conform-to/zod": "latest",
     "@prisma/client": "latest",
+    "next": "latest",
     "next-auth": "latest",
-    "openai": "^4.56.0"
+    "openai": "^4.56.0",
+    "react": "latest",
+    "react-dom": "latest",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "latest",
     "@types/react": "latest",
     "eslint": "latest",
     "eslint-config-next": "latest",
-    "typescript": "latest",
     "prettier": "latest",
-    "prisma": "latest"
+    "prisma": "latest",
+    "typescript": "latest",
+    "vitest": "^3.2.4"
   }
 }

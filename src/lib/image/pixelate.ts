@@ -159,3 +159,28 @@ export const SIMPLE_16_PALETTE: Array<[number, number, number]> = [
   [64, 64, 64],
 ];
 
+/**
+ * 最近傍で RGBA バッファを拡大縮小する純関数（テスト用/汎用）
+ */
+export function nearestNeighborScale(
+  src: Uint8ClampedArray,
+  sw: number,
+  sh: number,
+  dw: number,
+  dh: number
+): Uint8ClampedArray {
+  const dst = new Uint8ClampedArray(dw * dh * 4);
+  for (let y = 0; y < dh; y++) {
+    const sy = Math.min(sh - 1, Math.floor((y / dh) * sh));
+    for (let x = 0; x < dw; x++) {
+      const sx = Math.min(sw - 1, Math.floor((x / dw) * sw));
+      const sOff = (sy * sw + sx) * 4;
+      const dOff = (y * dw + x) * 4;
+      dst[dOff + 0] = src[sOff + 0];
+      dst[dOff + 1] = src[sOff + 1];
+      dst[dOff + 2] = src[sOff + 2];
+      dst[dOff + 3] = src[sOff + 3];
+    }
+  }
+  return dst;
+}
