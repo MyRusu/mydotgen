@@ -8,7 +8,7 @@ import { AppError, toHttpStatus, userMessage } from '@/lib/errors';
 const BodySchema = z.object({
   prompt: z.string().trim().min(1),
   size: z.number().int().optional(),
-  background: z.enum(['transparent', 'white']).optional(),
+  background: z.enum(['transparent', 'opaque']).optional(),
   store: z.boolean().optional(),
   artId: z.string().min(1).optional(),
 });

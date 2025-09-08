@@ -11,7 +11,7 @@ export default async function SignInPage() {
         <h1>サインイン済み</h1>
         <p>ようこそ、{session.user.name ?? session.user.email ?? 'User'} さん</p>
         <p style={{ marginTop: 12 }}>
-          <a href="/api/auth/signout" style={{ color: '#06c' }}>サインアウトへ</a>
+          <Link href="/api/auth/signout" style={{ color: '#06c' }}>サインアウトへ</Link>
         </p>
       </main>
     );
@@ -22,7 +22,7 @@ export default async function SignInPage() {
       <h1>サインイン</h1>
       <p>GitHub を使用して認証します。</p>
       <p style={{ marginTop: 12 }}>
-        <a href="/api/auth/signin" style={{ color: '#06c' }}>GitHub でサインイン</a>
+        <Link href="/api/auth/signin" style={{ color: '#06c' }}>GitHub でサインイン</Link>
       </p>
       <p style={{ marginTop: 12 }}>
         <Link href="/" style={{ color: '#06c' }}>トップへ戻る</Link>

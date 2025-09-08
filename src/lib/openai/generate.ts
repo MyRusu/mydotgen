@@ -8,7 +8,7 @@ export type ImageSize = z.infer<typeof ImageSizeSchema>;
 export type GenerateImageOptions = {
   prompt: string;
   size?: ImageSize; // default 512
-  background?: 'transparent' | 'white';
+  background?: 'transparent' | 'opaque';
 };
 
 export type GenerateImageResult = {
@@ -26,7 +26,10 @@ export async function generateImage(opts: GenerateImageOptions): Promise<Generat
 
   const client = getOpenAIClient();
 
-  const size = `${sizeNum}x${sizeNum}` as const;
+  const size = (sizeNum === 256 ? '256x256' : sizeNum === 512 ? '512x512' : '1024x1024') as
+    | '256x256'
+    | '512x512'
+    | '1024x1024';
 
   try {
     const res = await client.images.generate({
@@ -59,4 +62,3 @@ export async function generateImage(opts: GenerateImageOptions): Promise<Generat
     throw new AppError('UPSTREAM_ERROR', message, { cause: e, status: status ?? 502 });
   }
 }
-

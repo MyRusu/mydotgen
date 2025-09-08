@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function MyArtsPage() {
   const session = await getServerSession(authOptions);
-  const userId = session?.user?.email ?? session?.user?.id ?? 'unknown';
+  const userId = (session?.user?.email as string | undefined) ?? 'unknown';
   const arts = await getMyArts(userId);
 
   return (
