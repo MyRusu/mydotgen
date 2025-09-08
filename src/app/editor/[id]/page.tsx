@@ -1,25 +1,11 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { parseWithZod } from '@conform-to/zod';
 import PixelArtEditorConform from '@/components/editor/PixelArtEditorConform';
-import { PixelArtEditorFormSchema } from '@/lib/schemas/forms/pixelArtEditor';
-import { getArtById, upsertArt } from '@/lib/arts';
+import { getArtById } from '@/lib/arts';
 
-type Params = { params: { id: string } };
-
-export default async function EditEditorPage({ params }: Params) {
+export default async function EditEditorPage({ params }: any) {
   const art = await getArtById(params.id);
 
-  async function saveAction(_: unknown, formData: FormData) {
-    'use server';
-    const submission = parseWithZod(formData, { schema: PixelArtEditorFormSchema });
-    if (submission.status !== 'success') {
-      return submission.reply();
-    }
-    const { id, title, size, pixels } = submission.value;
-    const updated = await upsertArt({ id: id ?? params.id, title, size, pixels });
-    redirect(`/art/${updated.id}`);
-  }
 
   if (!art) {
     return (
@@ -37,7 +23,6 @@ export default async function EditEditorPage({ params }: Params) {
       </div>
       <PixelArtEditorConform
         initial={{ id: art.id, title: art.title, size: art.size, pixels: art.pixels }}
-        action={saveAction}
       />
     </main>
   );

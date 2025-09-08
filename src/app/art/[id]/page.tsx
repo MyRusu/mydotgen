@@ -1,9 +1,7 @@
 import Link from 'next/link';
 import { getArtById } from '@/lib/arts';
 
-type Params = { params: { id: string } };
-
-export default async function ArtDetailPage({ params }: Params) {
+export default async function ArtDetailPage({ params }: any) {
   const art = await getArtById(params.id);
   if (!art) {
     // Next.js の notFound を使わず、シンプルに表示（最小実装）

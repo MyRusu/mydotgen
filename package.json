@@ -14,7 +14,7 @@
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "zod": "latest",
+    "zod": "^3.23.8",
     "@conform-to/react": "latest",
     "@conform-to/zod": "latest",
     "@prisma/client": "latest"
