@@ -1,10 +1,14 @@
 import Link from 'next/link';
 import { getMyArts } from '@/lib/arts';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-options';
 
 export const dynamic = 'force-dynamic';
 
 export default async function MyArtsPage() {
-  const arts = await getMyArts();
+  const session = await getServerSession(authOptions);
+  const userId = session?.user?.email ?? session?.user?.id ?? 'unknown';
+  const arts = await getMyArts(userId);
 
   return (
     <main style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>

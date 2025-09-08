@@ -1,5 +1,6 @@
 export type PixelArt = {
   id: string;
+  userId: string;
   title: string;
   size: 16 | 32 | 64;
   public: boolean;
@@ -12,6 +13,7 @@ export type PixelArt = {
 const store: Record<string, PixelArt> = {
   'a1': {
     id: 'a1',
+    userId: 'demo_user',
     title: 'Slime',
     size: 16,
     public: true,
@@ -20,6 +22,7 @@ const store: Record<string, PixelArt> = {
   },
   'b2': {
     id: 'b2',
+    userId: 'demo_user',
     title: 'Knight',
     size: 32,
     public: false,
@@ -28,19 +31,26 @@ const store: Record<string, PixelArt> = {
   },
 };
 
-export async function getMyArts(): Promise<PixelArt[]> {
-  // 実際はユーザーでフィルタ。今は全件返す。
-  return Object.values(store).sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
+export async function getMyArts(userId: string): Promise<PixelArt[]> {
+  return Object.values(store)
+    .filter((a) => a.userId === userId)
+    .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
 }
 
 export async function getArtById(id: string): Promise<PixelArt | null> {
   return store[id] ?? null;
 }
 
-export async function upsertArt(input: Partial<PixelArt> & { id?: string; title: string; size: 16 | 32 | 64; pixels: number[]; }): Promise<PixelArt> {
+export async function upsertArt(input: Partial<PixelArt> & { id?: string; title: string; size: 16 | 32 | 64; pixels: number[]; userId: string }): Promise<PixelArt> {
   const id = input.id ?? Math.random().toString(36).slice(2, 8);
+  // 編集権限チェック（所有者のみ）
+  const existing = store[id];
+  if (existing && existing.userId !== input.userId) {
+    throw new Error('Forbidden: not the owner');
+  }
   const art: PixelArt = {
     id,
+    userId: input.userId,
     title: input.title,
     size: input.size,
     public: input.public ?? false,
@@ -50,4 +60,3 @@ export async function upsertArt(input: Partial<PixelArt> & { id?: string; title:
   store[id] = art;
   return art;
 }
-

@@ -8,7 +8,12 @@
     "start": "next start -p 3000",
     "lint": "next lint",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
     "next": "latest",
@@ -17,7 +22,8 @@
     "zod": "^3.23.8",
     "@conform-to/react": "latest",
     "@conform-to/zod": "latest",
-    "@prisma/client": "latest"
+    "@prisma/client": "latest",
+    "next-auth": "latest"
   },
   "devDependencies": {
     "@types/node": "latest",
