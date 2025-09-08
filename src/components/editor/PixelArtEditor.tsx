@@ -21,6 +21,9 @@ export default function PixelArtEditor(props: PixelArtEditorProps) {
   const [showGrid, setShowGrid] = useState<boolean>(true);
   const [tool, setTool] = useState<'pen' | 'eraser' | 'eyedropper' | 'fill'>('pen');
   const [color, setColor] = useState<number>(1); // パレットインデックス（0 は消し）
+  const [exportScale, setExportScale] = useState<number>(16);
+  const [exportBg, setExportBg] = useState<'transparent' | 'white'>('transparent');
+  const [exportMsg, setExportMsg] = useState<string>('');
 
   // Undo/Redo 履歴
   const [history, setHistory] = useState<number[][]>([props.pixels.slice()]);
@@ -162,6 +165,79 @@ export default function PixelArtEditor(props: PixelArtEditorProps) {
     setHistoryPtr(0);
   }
 
+  function hexToRgb(hex: string): { r: number; g: number; b: number } {
+    const m = /^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex);
+    if (!m) return { r: 255, g: 255, b: 255 };
+    return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+  }
+
+  function buildPngDataUrl(scale: number, bg: 'transparent' | 'white'): string {
+    const s = size;
+    const base = document.createElement('canvas');
+    base.width = s;
+    base.height = s;
+    const bctx = base.getContext('2d', { willReadFrequently: true })!;
+    const imgData = bctx.createImageData(s, s);
+    for (let y = 0; y < s; y++) {
+      for (let x = 0; x < s; x++) {
+        const idx = y * s + x;
+        const v = pixels[idx] ?? 0;
+        const { r, g, b } = hexToRgb(palette[v] ?? '#ffffff');
+        const off = idx * 4;
+        imgData.data[off + 0] = r;
+        imgData.data[off + 1] = g;
+        imgData.data[off + 2] = b;
+        imgData.data[off + 3] = bg === 'transparent' && v === 0 ? 0 : 255;
+      }
+    }
+    bctx.putImageData(imgData, 0, 0);
+
+    const out = document.createElement('canvas');
+    out.width = s * scale;
+    out.height = s * scale;
+    const octx = out.getContext('2d')!;
+    octx.imageSmoothingEnabled = false;
+    if (bg === 'white') {
+      octx.fillStyle = '#ffffff';
+      octx.fillRect(0, 0, out.width, out.height);
+    } else {
+      octx.clearRect(0, 0, out.width, out.height);
+    }
+    octx.drawImage(base, 0, 0, s, s, 0, 0, out.width, out.height);
+    return out.toDataURL('image/png');
+  }
+
+  async function handleCopyPng() {
+    try {
+      const dataUrl = buildPngDataUrl(exportScale, exportBg);
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      // @ts-ignore ClipboardItem may not be in lib dom for older TS
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      setExportMsg('PNG をクリップボードにコピーしました');
+      setTimeout(() => setExportMsg(''), 1500);
+    } catch (e) {
+      try {
+        const dataUrl = buildPngDataUrl(exportScale, exportBg);
+        await navigator.clipboard.writeText(dataUrl);
+        setExportMsg('PNG の Data URL をクリップボードにコピーしました');
+        setTimeout(() => setExportMsg(''), 1500);
+      } catch (e2) {
+        setExportMsg('コピーに失敗しました');
+      }
+    }
+  }
+
+  function handleDownloadPng() {
+    const dataUrl = buildPngDataUrl(exportScale, exportBg);
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = `${title || 'pixel-art'}_${size}x${size}@${exportScale}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
   return (
     <div>
       <h1 style={{ marginBottom: 12 }}>PixelArt エディタ（Client）</h1>
@@ -270,6 +346,39 @@ export default function PixelArtEditor(props: PixelArtEditorProps) {
             />
           ))}
         </div>
+      </div>
+
+      <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+        <strong>書き出し:</strong>
+        <label>
+          <span style={{ marginRight: 6 }}>スケール</span>
+          <input
+            type="number"
+            min={1}
+            max={64}
+            step={1}
+            value={exportScale}
+            onChange={(e) => setExportScale(Math.max(1, Math.min(64, Number(e.target.value) || 1)))}
+            style={{ width: 72 }}
+          />
+          <span style={{ marginLeft: 6 }}>
+            出力解像度: {size * exportScale} x {size * exportScale}
+          </span>
+        </label>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          背景
+          <select value={exportBg} onChange={(e) => setExportBg(e.target.value as 'transparent' | 'white')}>
+            <option value="transparent">透明</option>
+            <option value="white">白</option>
+          </select>
+        </label>
+        <button type="button" onClick={handleCopyPng} style={{ padding: '6px 10px' }}>
+          PNG をコピー
+        </button>
+        <button type="button" onClick={handleDownloadPng} style={{ padding: '6px 10px' }}>
+          PNG をダウンロード
+        </button>
+        {exportMsg && <span style={{ color: '#090' }}>{exportMsg}</span>}
       </div>
     </div>
   );
