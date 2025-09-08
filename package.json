@@ -14,7 +14,9 @@
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "zod": "latest"
+    "zod": "latest",
+    "@conform-to/react": "latest",
+    "@conform-to/zod": "latest"
   },
   "devDependencies": {
     "@types/node": "latest",

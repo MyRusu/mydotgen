@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 
 export type PixelArtEditorProps = {
   id?: string;
@@ -8,6 +8,8 @@ export type PixelArtEditorProps = {
   size: 16 | 32 | 64;
   pixels: number[];
   onSave?: (payload: { id?: string; title: string; size: 16 | 32 | 64; pixels: number[] }) => Promise<void> | void;
+  onStateChange?: (state: { id?: string; title: string; size: 16 | 32 | 64; pixels: number[] }) => void;
+  hideSaveButton?: boolean;
 };
 
 export default function PixelArtEditor(props: PixelArtEditorProps) {
@@ -25,6 +27,11 @@ export default function PixelArtEditor(props: PixelArtEditorProps) {
     return rows;
   }, [pixels, size]);
 
+  useEffect(() => {
+    props.onStateChange?.({ id: props.id, title, size, pixels });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, size, pixels]);
+
   function togglePixel(x: number, y: number) {
     setPixels((prev) => {
       const next = prev.slice();
@@ -41,6 +48,11 @@ export default function PixelArtEditor(props: PixelArtEditorProps) {
     });
   }
 
+  function handleSizeChange(nextSize: 16 | 32 | 64) {
+    setSize(nextSize);
+    setPixels(Array.from({ length: nextSize * nextSize }, () => 0));
+  }
+
   return (
     <div>
       <h1 style={{ marginBottom: 12 }}>PixelArt エディタ（Client）</h1>
@@ -55,15 +67,20 @@ export default function PixelArtEditor(props: PixelArtEditorProps) {
         </label>
         <label>
           <span style={{ marginRight: 6 }}>サイズ</span>
-          <select value={size} onChange={(e) => setSize(Number(e.target.value) as 16 | 32 | 64)}>
+          <select
+            value={size}
+            onChange={(e) => handleSizeChange(Number(e.target.value) as 16 | 32 | 64)}
+          >
             <option value={16}>16</option>
             <option value={32}>32</option>
             <option value={64}>64</option>
           </select>
         </label>
-        <button onClick={handleSave} disabled={isPending} style={{ padding: '6px 10px', cursor: 'pointer' }}>
-          {isPending ? '保存中…' : '保存'}
-        </button>
+        {!props.hideSaveButton && (
+          <button onClick={handleSave} disabled={isPending} style={{ padding: '6px 10px', cursor: 'pointer' }}>
+            {isPending ? '保存中…' : '保存'}
+          </button>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${size}, 16px)`, gap: 2 }}>
@@ -88,4 +105,3 @@ export default function PixelArtEditor(props: PixelArtEditorProps) {
     </div>
   );
 }
-
