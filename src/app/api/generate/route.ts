@@ -4,6 +4,9 @@ import { generateImage } from '@/lib/openai/generate';
 import { putImageFromDataUrl } from '@/lib/storage';
 import prisma from '@/lib/prisma';
 import { AppError, toHttpStatus, userMessage } from '@/lib/errors';
+import { rateLimit } from '@/lib/rate-limit';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-options';
 
 const BodySchema = z.object({
   prompt: z.string().trim().min(1),
@@ -15,6 +18,21 @@ const BodySchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limit: 5 requests per 60s per user/IP
+    const session = await getServerSession(authOptions);
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || (req as any).ip || 'unknown';
+    const key = session?.user?.email || `ip:${ip}`;
+    const rl = rateLimit(`gen:${key}`, { limit: 5, windowMs: 60_000 });
+    if (rl.limited) {
+      const res = NextResponse.json(
+        { ok: false, code: 'RATE_LIMITED', message: 'リクエストが多すぎます。しばらくしてから再試行してください。', retryAfter: rl.retryAfterSec },
+        { status: 429 }
+      );
+      if (rl.retryAfterSec) res.headers.set('Retry-After', String(rl.retryAfterSec));
+      if (typeof rl.resetAt === 'number') res.headers.set('X-RateLimit-Reset', String(rl.resetAt));
+      return res;
+    }
+
     const json = await req.json();
     const body = BodySchema.parse(json);
     const result = await generateImage({

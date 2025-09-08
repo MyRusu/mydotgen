@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 type ApiResponse =
@@ -18,6 +18,14 @@ export default function GeneratePage() {
   const [image, setImage] = useState<string | null>(null);
   const [revised, setRevised] = useState<string | undefined>(undefined);
   const [assetUrl, setAssetUrl] = useState<string | undefined>(undefined);
+  const [cooldown, setCooldown] = useState<number>(0);
+
+  // cooldown カウントダウン
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setInterval(() => setCooldown((c) => Math.max(0, c - 1)), 1000);
+    return () => clearInterval(t);
+  }, [cooldown]);
 
   async function handleGenerate() {
     setLoading(true);
@@ -32,6 +40,12 @@ export default function GeneratePage() {
         body: JSON.stringify({ prompt, size, background, store, artId: artId || undefined }),
       });
       const json: ApiResponse = await res.json();
+      if (res.status === 429) {
+        // レート制限：再試行秒数
+        const retryHeader = res.headers.get('Retry-After');
+        const retryAfter = Number(json && (json as any).retryAfter) || (retryHeader ? Number(retryHeader) : 0) || 30;
+        setCooldown(retryAfter);
+      }
       if (!json.ok) {
         setError(json.message);
         return;
@@ -88,8 +102,8 @@ export default function GeneratePage() {
             artId（任意）
             <input value={artId} onChange={(e) => setArtId(e.target.value)} placeholder="関連付ける PixelArt の ID" style={{ marginLeft: 6, minWidth: 240 }} />
           </label>
-          <button onClick={handleGenerate} disabled={loading} style={{ padding: '6px 10px' }}>
-            {loading ? '生成中…' : '生成する'}
+          <button onClick={handleGenerate} disabled={loading || cooldown > 0} style={{ padding: '6px 10px' }}>
+            {loading ? '生成中…' : cooldown > 0 ? `再試行 ${cooldown}s` : '生成する'}
           </button>
         </div>
 
@@ -122,4 +136,3 @@ export default function GeneratePage() {
     </main>
   );
 }
-
