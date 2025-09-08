@@ -16,7 +16,8 @@
     "react-dom": "latest",
     "zod": "latest",
     "@conform-to/react": "latest",
-    "@conform-to/zod": "latest"
+    "@conform-to/zod": "latest",
+    "@prisma/client": "latest"
   },
   "devDependencies": {
     "@types/node": "latest",
@@ -24,6 +25,7 @@
     "eslint": "latest",
     "eslint-config-next": "latest",
     "typescript": "latest",
-    "prettier": "latest"
+    "prettier": "latest",
+    "prisma": "latest"
   }
 }

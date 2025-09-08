@@ -1,0 +1,69 @@
+// Prisma schema for My Dot GEN
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String      @id @default(cuid())
+  email      String      @unique
+  name       String?
+  image      String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  pixelArts  PixelArt[]
+}
+
+model PixelArt {
+  id          String         @id @default(cuid())
+  userId      String
+  title       String         @db.VarChar(100)
+  size        Int
+  public      Boolean        @default(false)
+  pixels      Json
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  imageAssets  ImageAsset[]
+  publishEntries PublishEntry[]
+
+  @@index([userId])
+}
+
+model ImageAsset {
+  id        String   @id @default(cuid())
+  artId     String
+  url       String
+  mimeType  String
+  width     Int
+  height    Int
+  sizeBytes Int
+  createdAt DateTime @default(now())
+
+  art PixelArt @relation(fields: [artId], references: [id], onDelete: Cascade)
+
+  @@index([artId])
+}
+
+model PublishEntry {
+  id        String   @id @default(cuid())
+  artId     String
+  slug      String   @unique @db.VarChar(80)
+  title     String   @db.VarChar(100)
+  body      String?
+  public    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  art PixelArt @relation(fields: [artId], references: [id], onDelete: Cascade)
+
+  @@index([artId])
+}
+
