@@ -1,21 +1,17 @@
 import Link from 'next/link';
-import { getArtById } from '@/lib/arts';
+import prisma from '@/lib/prisma';
+import { notFound } from 'next/navigation';
 
 export default async function ArtDetailPage({ params }: any) {
-  const art = await getArtById(params.id);
-  if (!art) {
-    // Next.js の notFound を使わず、シンプルに表示（最小実装）
-    return (
-      <main style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
-        <p>作品が見つかりません。</p>
-        <Link href="/my/arts" style={{ color: '#06c' }}>一覧へ戻る</Link>
-      </main>
-    );
-  }
+  const art = await prisma.pixelArt.findUnique({
+    where: { id: params.id },
+    select: { id: true, title: true, size: true, public: true, updatedAt: true },
+  });
+  if (!art) return notFound();
 
   return (
     <main style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
-      <h1 style={{ marginBottom: 12 }}>作品詳細（RSC）</h1>
+      <h1 style={{ marginBottom: 12 }}>作品詳細（RSC / Prisma）</h1>
       <div style={{ marginBottom: 16 }}>
         <div><strong>タイトル:</strong> {art.title}</div>
         <div><strong>サイズ:</strong> {art.size}x{art.size}</div>
@@ -25,12 +21,6 @@ export default async function ArtDetailPage({ params }: any) {
 
       <div style={{ marginBottom: 24 }}>
         <Link href={`/editor/${art.id}`} style={{ color: '#06c' }}>この作品を編集（Client）</Link>
-      </div>
-
-      <div>
-        <p style={{ color: '#666' }}>
-          プレビューは後続タスク（画像最適化/キャンバス描画等）で対応します。
-        </p>
       </div>
 
       <div style={{ marginTop: 24 }}>

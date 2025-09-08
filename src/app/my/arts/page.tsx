@@ -1,14 +1,18 @@
 import Link from 'next/link';
-import { getMyArts } from '@/lib/arts';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
+import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
 export default async function MyArtsPage() {
   const session = await getServerSession(authOptions);
   const userId = (session?.user?.email as string | undefined) ?? 'unknown';
-  const arts = await getMyArts(userId);
+  const arts = await prisma.pixelArt.findMany({
+    where: { userId },
+    orderBy: { updatedAt: 'desc' },
+    select: { id: true, title: true, size: true, public: true, updatedAt: true },
+  });
 
   return (
     <main style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
