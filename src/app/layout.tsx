@@ -1,3 +1,6 @@
+// ルートレイアウト（全ページ共通の枠組み）
+// - `src/app/layout.tsx` は全ページに適用される（ヘッダー/フッター等）
+// - サーバー側でセッションを取得し、ヘッダーにサインイン状態を表示
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';

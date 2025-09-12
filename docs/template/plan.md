@@ -57,6 +57,7 @@
 
 - `docs/impl-reports/IMPL-XXXX-{{date}}-{{slug}}.md`
 - `docs/specs/*`（具体パス）
+ - `docs/spec/*`（具体パス）
 - 関連 ADR（必要なら新規作成）
 
 ## 10. 参照（References）

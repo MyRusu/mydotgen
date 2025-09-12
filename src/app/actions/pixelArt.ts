@@ -1,5 +1,12 @@
 "use server";
 
+/**
+ * PixelArt に関するサーバーアクション群
+ * - 認証済みユーザ（email を内部 ID として採用）に紐づく CRUD を提供します。
+ * - 入力は Zod で検証し、不正なデータを早期に弾きます。
+ * - 画面からのフォーム送信は `savePixelArt` が受け、成功時は詳細ページへ `redirect()`。
+ */
+
 import { parseWithZod } from '@conform-to/zod';
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
@@ -15,6 +22,7 @@ import { PixelArtEditorFormSchema } from '@/lib/schemas/forms/pixelArtEditor';
 
 export type SaveState = { ok?: boolean; errors?: string[] } | null;
 
+// Prisma の User を id=email で upsert（外部 ID をそのまま内部 ID として利用）
 async function ensureUser(userId: string, name?: string | null, image?: string | null) {
   // id に email を採用し、存在しなければ作成（FK 整合用）
   await prisma.user.upsert({
@@ -24,6 +32,7 @@ async function ensureUser(userId: string, name?: string | null, image?: string |
   });
 }
 
+// サーバー側でログイン済みかを確認し、email を内部 ID として返す
 async function requireUserId(): Promise<string> {
   const session = await getServerSession(authOptions);
   const userId = (session?.user?.email as string | undefined) ?? '';
@@ -86,10 +95,12 @@ export async function getMyArts() {
   return arts;
 }
 
+// どの呼び出し方（文字列 or オブジェクト）でも id を取り出して Zod で検証
 function zodId(input: unknown): { id: string } {
   return { id: PixelArtIdSchema.parse(typeof input === 'string' ? input : (input as any)?.id) };
 }
 
+// Conform スタイルの `useActionState` から呼ばれるフォーム保存アクション
 export async function savePixelArt(prevState: SaveState, formData: FormData): Promise<SaveState> {
   const submission = parseWithZod(formData, { schema: PixelArtEditorFormSchema });
   if (submission.status !== 'success') {

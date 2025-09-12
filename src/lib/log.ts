@@ -1,3 +1,6 @@
+// 簡易メトリクスとイベントログ（開発支援）
+// - プロセス内に近況のイベント一覧とカウンタを保持します。
+// - `/api/metrics` からスナップショットを参照可能（開発時のみ）。
 type Counters = Record<string, number>;
 
 type EventRecord = {
@@ -55,4 +58,3 @@ export function getMetricsSnapshot() {
     recent: store.events,
   };
 }
-

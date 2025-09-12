@@ -1,3 +1,6 @@
+// 動的ルートページ（Client エディタを RSC から初期化）
+// - `src/app/editor/[id]/page.tsx` は `/editor/:id` にマップされる
+// - `params` から URL の `id` を受け取り、DB から初期値を取得して Editor に渡す
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import PixelArtEditorConform from '@/components/editor/PixelArtEditorConform';

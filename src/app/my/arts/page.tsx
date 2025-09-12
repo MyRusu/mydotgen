@@ -1,3 +1,5 @@
+// 一覧ページ（RSC） `/my/arts`
+// - 認証ミドルウェアで保護。サーバー側でセッションから userId を取得して DB を読む
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';

@@ -1,3 +1,8 @@
+// 画像生成 API（POST）
+// - リクエスト検証（zod）
+// - レート制限（メモリ固定窓）
+// - OpenAI への生成依頼→任意でローカル保存→DB 登録（画像メタ）
+// - 失敗時は `AppError` をベースに一貫した JSON エラーを返す
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { generateImage } from '@/lib/openai/generate';
@@ -9,6 +14,7 @@ import { rateLimit } from '@/lib/rate-limit';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 
+// クライアントから受け取るボディ定義
 const BodySchema = z.object({
   prompt: z.string().trim().min(1),
   size: z.number().int().optional(),
@@ -19,7 +25,7 @@ const BodySchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    // Rate limit: 5 requests per 60s per user/IP
+    // レート制限: 60 秒あたり 5 回（ユーザ or IP）
     const session = await getServerSession(authOptions);
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || (req as any).ip || 'unknown';
     const rlKey = session?.user?.email || `ip:${ip}`;
@@ -35,6 +41,7 @@ export async function POST(req: NextRequest) {
       return res;
     }
 
+    // 入力検証
     const json = await req.json();
     const body = BodySchema.parse(json);
     const started = Date.now();
@@ -48,12 +55,14 @@ export async function POST(req: NextRequest) {
       ip,
     });
 
+    // OpenAI に 画像生成 を依頼
     const result = await generateImage({
       prompt: body.prompt,
       size: body.size as any,
       background: body.background,
     });
     let asset: any = undefined;
+    // 保存フラグが立っている場合はローカルストレージへ保存し、可能なら Prisma にメタを登録
     if (body.store) {
       const saved = await putImageFromDataUrl({ dataUrl: result.dataUrl, artId: body.artId, variant: 'orig' });
       if (body.artId) {
@@ -70,7 +79,7 @@ export async function POST(req: NextRequest) {
             },
           });
         } catch (e) {
-          // ignore DB failure here; file is stored regardless
+          // DB 登録に失敗してもファイル保存は成功しているため握りつぶす（ユーザ体験を優先）
         }
       }
       asset = saved;
@@ -87,8 +96,8 @@ export async function POST(req: NextRequest) {
       logEvent('generate.error', { code: 'BAD_REQUEST', message: 'Invalid request body' });
       return NextResponse.json({ ok: false, code: 'BAD_REQUEST', message: 'Invalid request body' }, { status: 400 });
     }
+    // 予期しない例外は INTERNAL_ERROR として隠蔽（メッセージは一般化）
     logEvent('generate.error', { code: 'INTERNAL_ERROR', message: userMessage(err) });
     return NextResponse.json({ ok: false, code: 'INTERNAL_ERROR', message: userMessage(err) }, { status: 500 });
   }
 }
-

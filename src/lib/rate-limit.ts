@@ -1,3 +1,5 @@
+// 単純な固定窓（Fixed Window）のレートリミッタ（インメモリ）
+// - 単一プロセス前提。本番の水平スケールには不向きです（Redis 等へ移行推奨）。
 type Bucket = {
   count: number;
   resetAt: number; // epoch ms
@@ -24,6 +26,7 @@ export function rateLimit(
   const current = buckets.get(key);
   let bucket: Bucket;
   if (!current || now > current.resetAt) {
+    // 新しい窓を開始
     bucket = { count: 0, resetAt: now + windowMs };
   } else {
     bucket = current;
@@ -41,4 +44,3 @@ export function rateLimit(
     resetAt: bucket.resetAt,
   };
 }
-

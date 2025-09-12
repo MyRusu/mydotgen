@@ -1,3 +1,7 @@
+// NextAuth の基本設定
+// - Provider: GitHub OAuth（クライアント ID/Secret は .env から）
+// - セッション: JWT 戦略
+// - `NEXTAUTH_SECRET`/`AUTH_SECRET` のいずれかを使用
 import type { NextAuthOptions } from 'next-auth';
 import GitHubProvider from 'next-auth/providers/github';
 

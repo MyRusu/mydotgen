@@ -1,5 +1,17 @@
 "use client";
 
+/**
+ * ドット絵エディタ（クライアントコンポーネント）
+ * - 16/32/64 の正方グリッド
+ * - ツール: ペン/消し/スポイト/塗り
+ * - Undo/Redo（最大 50 段）とズーム、グリッド表示切替
+ * - PNG の書き出し（スケール、背景: 透明/白、コピー/ダウンロード）
+ *
+ * 仕組みの概要
+ * - `pixels` はセルごとのパレットインデックス（0..15）を一次元配列で保持
+ * - 操作中はドラフト配列（draftRef）へ書き、マウスアップ時に commit して履歴に積む
+ */
+
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 
 export type PixelArtEditorProps = {
@@ -26,6 +38,7 @@ export default function PixelArtEditor(props: PixelArtEditorProps) {
   const [exportMsg, setExportMsg] = useState<string>('');
 
   // Undo/Redo 履歴
+  // Undo/Redo 用の履歴。各要素はピクセル配列のスナップショット
   const [history, setHistory] = useState<number[][]>([props.pixels.slice()]);
   const [historyPtr, setHistoryPtr] = useState<number>(0);
   const isDrawingRef = useRef(false);
@@ -54,6 +67,7 @@ export default function PixelArtEditor(props: PixelArtEditorProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title, size, pixels]);
 
+  // ドラフト内容を確定して履歴に積む
   function commit(next: number[]) {
     setPixels(next);
     setHistory((h) => {
@@ -80,6 +94,7 @@ export default function PixelArtEditor(props: PixelArtEditorProps) {
     setPixels(history[ptr]);
   }
 
+  // 操作中のドラフト配列に 1 ドット分の変更を記録
   function setPixelDraft(x: number, y: number, value: number) {
     const idx = y * size + x;
     if (draftRef.current) {
@@ -132,6 +147,7 @@ export default function PixelArtEditor(props: PixelArtEditorProps) {
     }
   }
 
+  // 4 近傍での塗りつぶし（シンプル BFS）
   function floodFill(arr: number[], s: number, sx: number, sy: number, from: number, to: number) {
     const q: Array<[number, number]> = [[sx, sy]];
     const seen = new Set<number>();
@@ -171,6 +187,7 @@ export default function PixelArtEditor(props: PixelArtEditorProps) {
     return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
   }
 
+  // `pixels` 配列から PNG を生成して Data URL を返す（オフスクリーンキャンバス使用）
   function buildPngDataUrl(scale: number, bg: 'transparent' | 'white'): string {
     const s = size;
     const base = document.createElement('canvas');

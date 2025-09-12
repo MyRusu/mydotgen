@@ -1,7 +1,11 @@
+// OpenAI 画像生成のラッパー
+// - 入力検証（zod）とエラーの正規化（AppError）を担います。
+// - 生成結果は base64 PNG の Data URL として返します。
 import { z } from 'zod';
 import { AppError } from '@/lib/errors';
 import { getOpenAIClient } from '@/lib/openai/client';
 
+// OpenAI Images API の出力サイズ（正方形）
 export const ImageSizeSchema = z.union([z.literal(256), z.literal(512), z.literal(1024)]);
 export type ImageSize = z.infer<typeof ImageSizeSchema>;
 
@@ -32,6 +36,7 @@ export async function generateImage(opts: GenerateImageOptions): Promise<Generat
     | '1024x1024';
 
   try {
+    // OpenAI へ画像生成をリクエスト
     const res = await client.images.generate({
       model: 'gpt-image-1',
       prompt,
@@ -50,7 +55,7 @@ export async function generateImage(opts: GenerateImageOptions): Promise<Generat
       revisedPrompt: (item as any)?.revised_prompt as string | undefined,
     };
   } catch (e: any) {
-    // Normalize known OpenAI errors
+    // OpenAI 由来の典型的なエラーを HTTP 相当へ正規化
     const status = e?.status ?? e?.response?.status;
     const message: string = e?.message || 'OpenAI request failed';
     if (status === 401) {

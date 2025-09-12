@@ -1,3 +1,5 @@
+// トップページ `/`（RSC）
+// - App Router では `src/app/page.tsx` がルートに対応
 import Link from 'next/link';
 
 export default function Page() {

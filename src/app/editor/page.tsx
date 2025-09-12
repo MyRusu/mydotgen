@@ -1,3 +1,5 @@
+// 静的ルートの新規作成ページ `/editor`
+// - サーバーコンポーネントで初期状態を用意し、Editor（Client）に渡す
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import PixelArtEditorConform from '@/components/editor/PixelArtEditorConform';

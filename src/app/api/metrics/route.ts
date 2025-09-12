@@ -1,3 +1,6 @@
+// App Router の Route Handler（GET のみ）
+// - `src/app/api/metrics/route.ts` は `/api/metrics` にマップされる
+// - `GET` 関数をエクスポートすると GET リクエストに応答する
 import { NextResponse } from 'next/server';
 import { getMetricsSnapshot } from '@/lib/log';
 
@@ -8,4 +11,3 @@ export async function GET() {
   const snapshot = getMetricsSnapshot();
   return NextResponse.json({ ok: true, ...snapshot });
 }
-
