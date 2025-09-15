@@ -8,7 +8,7 @@
 
 ## 1. 実装サマリ（What Changed）
 
-- NextAuth（GitHub OAuth）を導入し、JWT セッション戦略で認証を実装。
+- NextAuth（Google OAuth）を導入し、JWT セッション戦略で認証を実装。
 - ミドルウェアで `/editor` `/editor/*` `/my/arts` を認証保護。
 - サインインページ（RSC）とサインアウト導線を追加。
 - サーバーアクションでユーザ存在を `upsert` して外部 ID（email）を内部 ID として整合。
@@ -23,7 +23,7 @@
 
 ## 2. 仕様の確定内容（Finalized Specs）
 
-- 認証方式: GitHub OAuth（NextAuth Provider）。
+- 認証方式: Google OAuth（NextAuth Provider）。
 - セッション: JWT。
 - 保護対象: `/editor`, `/editor/:path*`, `/my/arts`。
 - 失敗時の遷移: `/auth/sign-in` へ誘導。
@@ -45,7 +45,7 @@
 
 ## 5. 運用ノート（Operational Notes）
 
-- GitHub OAuth アプリ登録とコールバック URL（`NEXTAUTH_URL` ベース）設定が必要。
+- Google OAuth クライアント登録とコールバック URL（`NEXTAUTH_URL` ベース）設定が必要。
 - セッションは JWT のためサーバ側ストレージ不要。
 
 ## 6. 既知の課題 / 次の改善（Known Issues / Follow-ups）
@@ -59,4 +59,3 @@
 - ルート: `src/app/api/auth/[...nextauth]/route.ts`
 - ミドルウェア: `src/middleware.ts`
 - サインイン: `src/app/auth/sign-in/page.tsx`
-

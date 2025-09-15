@@ -40,7 +40,7 @@
 ## 6. 実装手順（Implementation Steps）
 
 1. Next.js/TS 設定、ESLint/Prettier 導入（`next.config.mjs`/`tsconfig.json`）。
-2. NextAuth（GitHub OAuth）組み込み、`src/middleware.ts` で保護ルート設定。
+2. NextAuth（Google OAuth）組み込み、`src/middleware.ts` で保護ルート設定。
 3. Prisma スキーマ定義と DB 起動（`docker compose`）→ マイグレーション。
 4. ピクセルエディタ実装（Client）とページ配線（App Router）。
 5. OpenAI 画像生成 API 実装とローカルストレージ連携。

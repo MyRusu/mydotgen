@@ -29,7 +29,7 @@
   - API ルート:
     - `api/generate/route.ts`：OpenAI 画像生成 → ローカルストレージ保存（任意）→ Prisma 登録（任意）
     - `api/metrics/route.ts`：簡易メトリクス取得（開発時のみ or `METRICS_PUBLIC=1`）
-    - `api/auth/[...nextauth]/route.ts`：NextAuth（GitHub OAuth）
+    - `api/auth/[...nextauth]/route.ts`：NextAuth（Google OAuth）
   - ミドルウェア: `src/middleware.ts`（`/editor`・`/my/arts` などを認証保護）
 
 - `src/components/`
@@ -57,7 +57,7 @@
 
 技術スタック要点
 - フロント: Next.js App Router + React Server/Client Component 併用（UI は最小限のインラインスタイル）
-- 認証: NextAuth（GitHub OAuth）。セッション JWT 戦略
+- 認証: NextAuth（Google OAuth）。セッション JWT 戦略
 - DB: Prisma + PostgreSQL（Docker Compose を同梱）
 - 生成: OpenAI Images API（`gpt-image-1`）
 - 観測性: 構造化ログ + 簡易メトリクス（開発支援）

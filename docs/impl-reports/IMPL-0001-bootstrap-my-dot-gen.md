@@ -9,7 +9,7 @@
 ## 1. 実装サマリ（What Changed）
 
 - Next.js（App Router, TS）をベースにプロジェクト初期化し、以下を実装。
-  - 認証: NextAuth（GitHub OAuth）, JWT セッション, 認証保護ミドルウェア。
+  - 認証: NextAuth（Google OAuth）, JWT セッション, 認証保護ミドルウェア。
   - DB/永続化: Prisma + PostgreSQL。`User`, `PixelArt`, `ImageAsset`, `PublishEntry` モデル。
   - 生成: OpenAI Images API を用いた画像生成 API（`gpt-image-1`）。
   - ストレージ: ローカルドライバで `public/uploads` 配下へ保存（将来 S3 拡張前提）。
@@ -27,7 +27,7 @@
     - レート制限: 60 秒 5 リクエスト/ユーザ（未ログインは IP ベース）。429 時は `Retry-After` 返却。
   - GET `/api/metrics`
     - 開発時のみ（または `METRICS_PUBLIC=1`）。`{ ok: true, counters, recent }` を返却。
-  - Auth（NextAuth）: `/api/auth/*`（GitHub OAuth）。
+- Auth（NextAuth）: `/api/auth/*`（Google OAuth）。
 - UI（代表）
   - `/` トップ、`/generate` 生成、`/editor` 新規、`/editor/[id]` 編集、`/my/arts` 一覧、`/art/[id]` 詳細、`/auth/sign-in`。
   - `/editor*` `/my/arts` は認証必須（`src/middleware.ts`）。
@@ -57,7 +57,7 @@
 
 ## 5. 運用ノート（Operational Notes）
 
-- Auth: GitHub OAuth クライアント設定が必要。`NEXTAUTH_URL` は実行ホストに合わせる。
+- Auth: Google OAuth クライアント設定が必要。`NEXTAUTH_URL` は実行ホストに合わせる。
 - OpenAI: `OPENAI_API_KEY` が未設定の場合、生成 API は `INVALID_CONFIG` を返す。
 - ストレージ: ローカルのため永続化はコンテナ/ホストのディレクトリに依存。S3 への拡張はドライバ差し替えで対応予定。
 - メトリクス: 本番では無効（公開する場合は `METRICS_PUBLIC=1` を明示）。
@@ -80,4 +80,3 @@
 ## 8. 追記/正誤
 
 - なし
-

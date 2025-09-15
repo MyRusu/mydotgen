@@ -20,9 +20,9 @@ export default async function SignInPage() {
   return (
     <main style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
       <h1>サインイン</h1>
-      <p>GitHub を使用して認証します。</p>
+      <p>Google を使用して認証します。</p>
       <p style={{ marginTop: 12 }}>
-        <Link href="/api/auth/signin/github" style={{ color: '#06c' }}>GitHub でサインイン</Link>
+        <Link href="/api/auth/signin/google" style={{ color: '#06c' }}>Google でサインイン</Link>
       </p>
       <p style={{ marginTop: 12 }}>
         <Link href="/" style={{ color: '#06c' }}>トップへ戻る</Link>
