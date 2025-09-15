@@ -2,13 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { pixelateFromImage } from '@/lib/image/pixelate';
+import { quantizeToPalette } from '@/lib/image/pixelate';
+import { DEFAULT_PALETTE_RGB } from '@/lib/palette';
 
 type ApiResponse =
   | { ok: true; image: string; revisedPrompt?: string; asset?: { url: string; key: string } }
   | { ok: false; code: string; message: string };
 
 export default function GeneratePage() {
+  const router = useRouter();
+  const { status } = useSession();
   const [prompt, setPrompt] = useState('pixel art slime, 16-bit, simple');
   // OpenAI への生成は 1024 固定（UI には出さない）
   const OPENAI_SIZE = 1024;
@@ -76,6 +82,34 @@ export default function GeneratePage() {
     a.remove();
   }
 
+  async function openInEditor() {
+    if (!image) return;
+    // DataURL を画像→gridサイズに縮小→16色パレットに量子化して pixels 配列を作る
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = (e) => reject(e);
+      i.src = image!;
+    });
+    const grid = outputSize;
+    const c = document.createElement('canvas');
+    c.width = grid;
+    c.height = grid;
+    const ctx = c.getContext('2d', { willReadFrequently: true })!;
+    ctx.imageSmoothingEnabled = false;
+    // 生成済みのプレビュー画像は拡大されているため、grid に縮小描画
+    ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, grid, grid);
+    const data = ctx.getImageData(0, 0, grid, grid);
+
+    const q = quantizeToPalette(data.data, DEFAULT_PALETTE_RGB, 8, 0);
+    const pixels = Array.from(q).map((n) => Number(n));
+
+    // シードをローカルに保存して、エディタ(import)へ遷移
+    const seed = { title: prompt.slice(0, 40) || 'Generated', size: grid as 16 | 32 | 64, pixels };
+    localStorage.setItem('pixelart:seed', JSON.stringify(seed));
+    router.push('/editor/import');
+  }
+
   async function pixelateDataUrl(dataUrl: string, grid: 16 | 32 | 64): Promise<string> {
     // DataURL から画像を読み込み
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -110,38 +144,82 @@ export default function GeneratePage() {
   }
 
   return (
-    <main style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
-      <h1 style={{ marginBottom: 12 }}>画像生成（gpt-image-1）</h1>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 720 }}>
-        <label>
-          <div style={{ marginBottom: 6 }}>プロンプト</div>
-          <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4} style={{ width: '100%', padding: 8 }} />
-        </label>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-          <label>
-            出力サイズ
-            <select value={outputSize} onChange={(e) => setOutputSize(Number(e.target.value) as 16 | 32 | 64)} style={{ marginLeft: 6 }}>
+    <main style={{ padding: 24, fontFamily: 'system-ui, sans-serif', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ width: '100%', maxWidth: 720 }}>
+        <h1 style={{ marginBottom: 36, textAlign: 'center' }}>画像生成（gpt-image-1）</h1>
+
+        {/* コントロール行: 出力サイズ / 背景 / 保存 / artId */}
+        <div
+          style={{
+            display: 'flex',
+            gap: 16,
+            alignItems: 'flex-start',
+            flexWrap: 'nowrap',
+            justifyContent: 'center',
+            marginTop: 20,
+            marginBottom: 24,
+            overflowX: 'auto',
+          }}
+        >
+          {/* 出力サイズ（2行） */}
+          <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+            <span style={{ marginBottom: 4 }}>出力サイズ</span>
+            <select
+              value={outputSize}
+              onChange={(e) => setOutputSize(Number(e.target.value) as 16 | 32 | 64)}
+              style={{ width: 100 }}
+            >
               <option value={16}>16</option>
               <option value={32}>32</option>
               <option value={64}>64</option>
             </select>
           </label>
-          <label>
-            背景
-            <select value={background} onChange={(e) => setBackground(e.target.value as any)} style={{ marginLeft: 6 }}>
+          {/* 背景（2行） */}
+          <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+            <span style={{ marginBottom: 4 }}>背景</span>
+            <select
+              value={background}
+              onChange={(e) => setBackground(e.target.value as any)}
+              style={{ width: 140 }}
+            >
               <option value="transparent">透明</option>
               <option value="opaque">不透明（白）</option>
             </select>
           </label>
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <input type="checkbox" checked={store} onChange={(e) => setStore(e.target.checked)} />
-            保存（ImageAsset 登録）
+          {/* artId（2行） */}
+          <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+            <span style={{ marginBottom: 4 }}>artId（任意）</span>
+            <input
+              value={artId}
+              onChange={(e) => setArtId(e.target.value)}
+              placeholder="関連付ける PixelArt の ID"
+              style={{ width: 220 }}
+            />
           </label>
-          <label>
-            artId（任意）
-            <input value={artId} onChange={(e) => setArtId(e.target.value)} placeholder="関連付ける PixelArt の ID" style={{ marginLeft: 6, minWidth: 240 }} />
-          </label>
-          <button onClick={handleGenerate} disabled={loading || cooldown > 0} style={{ padding: '6px 10px' }}>
+          {/* 保存（2行） */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+            <span style={{ marginBottom: 4 }}>保存</span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <input
+                type="checkbox"
+                className="checkbox-sm"
+                checked={store}
+                onChange={(e) => setStore(e.target.checked)}
+              />
+              <span>ImageAsset 登録</span>
+            </div>
+          </div>
+        </div>
+
+        {/* プロンプト */}
+        <label style={{ display: 'block', marginTop: 12, marginBottom: 24 }}>
+          <div style={{ marginBottom: 6 }}>プロンプト</div>
+          <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4} style={{ width: '100%', padding: 8 }} />
+        </label>
+
+        {/* 生成ボタン */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+          <button onClick={handleGenerate} disabled={loading || cooldown > 0} className="btn">
             {loading ? '生成中…' : cooldown > 0 ? `再試行 ${cooldown}s` : '生成する'}
           </button>
         </div>
@@ -155,21 +233,26 @@ export default function GeneratePage() {
         )}
 
         {image && (
-          <div style={{ marginTop: 12 }}>
+          <div style={{ marginTop: 16 }}>
             <img src={image} alt="generated" style={{ maxWidth: '100%', imageRendering: 'pixelated' }} />
-            <div style={{ marginTop: 8, display: 'flex', gap: 12 }}>
-              <button onClick={download} style={{ padding: '6px 10px' }}>ダウンロード</button>
+            <div style={{ marginTop: 12, display: 'flex', gap: 12 }}>
+              <button onClick={download} className="btn btn-outline">ダウンロード</button>
               {assetUrl && (
-                <a href={assetUrl} target="_blank" rel="noreferrer" style={{ color: '#06c' }}>
+                <a href={assetUrl} target="_blank" rel="noreferrer" className="btn btn-ghost">
                   保存先を開く（assets）
                 </a>
+              )}
+              {status === 'authenticated' && (
+                <button onClick={openInEditor} className="btn">
+                  エディタで編集
+                </button>
               )}
             </div>
           </div>
         )}
 
-        <div style={{ marginTop: 24 }}>
-          <Link href="/" style={{ color: '#06c' }}>トップへ戻る</Link>
+        <div style={{ marginTop: 32, display: 'flex', justifyContent: 'center' }}>
+          <Link href="/" className="btn btn-ghost btn-sm">トップへ戻る</Link>
         </div>
       </div>
     </main>

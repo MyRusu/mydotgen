@@ -11,8 +11,7 @@ export default function Error({
     <main style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
       <h1>一覧の表示でエラー</h1>
       <p style={{ color: '#c00' }}>{error.message}</p>
-      <button onClick={() => reset()} style={{ marginTop: 12, padding: '6px 10px' }}>再試行</button>
+      <button onClick={() => reset()} className="btn" style={{ marginTop: 12 }}>再試行</button>
     </main>
   );
 }
-

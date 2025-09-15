@@ -1,5 +1,7 @@
 # IMPL-XXXX: {{TASK_NAME}}
 
+> 保存先: `docs/impl-reports/IMPL-XXXX-<slug>.md`（IMPL は必ず `docs/impl-reports` 配下）
+
 - **Date**: {{YYYY-MM-DD}}
 - **Owner**: @{{owner}}
 - **Related PLAN**: PLAN-XXXX (link)

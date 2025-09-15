@@ -12,13 +12,9 @@ export default function ErrorPage({
       <h1>エラーが発生しました</h1>
       <p style={{ color: '#c00' }}>{error.message}</p>
       {error.digest ? <p>digest: {error.digest}</p> : null}
-      <button
-        onClick={() => reset()}
-        style={{ marginTop: 12, padding: '8px 12px', cursor: 'pointer' }}
-      >
+      <button onClick={() => reset()} className="btn" style={{ marginTop: 12 }}>
         もう一度試す
       </button>
     </main>
   );
 }
-

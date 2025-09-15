@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { DEFAULT_PALETTE_HEX } from '@/lib/palette';
 
 export type PixelArtEditorProps = {
   id?: string;
@@ -22,6 +23,8 @@ export type PixelArtEditorProps = {
   onSave?: (payload: { id?: string; title: string; size: 16 | 32 | 64; pixels: number[] }) => Promise<void> | void;
   onStateChange?: (state: { id?: string; title: string; size: 16 | 32 | 64; pixels: number[] }) => void;
   hideSaveButton?: boolean;
+  hideTitle?: boolean; // ページ側でタイトルを表示する場合に内部の見出しを隠す
+  leftFooter?: React.ReactNode; // 左サイド下部に追加要素（保存ボタン等）
 };
 
 export default function PixelArtEditor(props: PixelArtEditorProps) {
@@ -30,7 +33,11 @@ export default function PixelArtEditor(props: PixelArtEditorProps) {
   const [pixels, setPixels] = useState<number[]>(props.pixels);
   const [isPending, startTransition] = useTransition();
   const [cellPx, setCellPx] = useState<number>(16); // ズーム（セル表示サイズ）
+  const [fitCellPx, setFitCellPx] = useState<number>(16);
+  const [userZoomed, setUserZoomed] = useState<boolean>(false);
   const [showGrid, setShowGrid] = useState<boolean>(true);
+  const [gridGap, setGridGap] = useState<number>(2);
+  const [gridLine, setGridLine] = useState<number>(1);
   const [tool, setTool] = useState<'pen' | 'eraser' | 'eyedropper' | 'fill'>('pen');
   const [color, setColor] = useState<number>(1); // パレットインデックス（0 は消し）
   const [exportScale, setExportScale] = useState<number>(16);
@@ -45,13 +52,11 @@ export default function PixelArtEditor(props: PixelArtEditorProps) {
   const draftRef = useRef<number[] | null>(null);
   const paintedSetRef = useRef<Set<number>>(new Set());
 
-  const palette: string[] = useMemo(
-    () => [
-      '#ffffff', '#000000', '#888888', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#00ffff',
-      '#ff00ff', '#800000', '#008000', '#000080', '#888800', '#008888', '#880088', '#444444',
-    ],
-    []
-  );
+  const [palette, setPalette] = useState<string[]>(DEFAULT_PALETTE_HEX.slice());
+  const [rVal, setRVal] = useState<number>(255);
+  const [gVal, setGVal] = useState<number>(255);
+  const [bVal, setBVal] = useState<number>(255);
+  const [hexInput, setHexInput] = useState<string>('#ffffff');
 
   const grid = useMemo(() => {
     const s = size;
@@ -66,6 +71,50 @@ export default function PixelArtEditor(props: PixelArtEditorProps) {
     props.onStateChange?.({ id: props.id, title, size, pixels });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title, size, pixels]);
+
+  // キャンバスの親要素幅に合わせて、セルサイズの上限を計算（はみ出し防止）
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [canvasMaxH, setCanvasMaxH] = useState<number | null>(null);
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const compute = () => {
+      const w = el.clientWidth; // padding を含む幅
+      const styles = getComputedStyle(el);
+      const padX = parseFloat(styles.paddingLeft || '0') + parseFloat(styles.paddingRight || '0');
+      const padY = parseFloat(styles.paddingTop || '0') + parseFloat(styles.paddingBottom || '0');
+      const innerW = Math.max(0, w - padX);
+      // ビューポート下端までの高さを使って、縦方向の上限も計算
+      const rect = el.getBoundingClientRect();
+      const vh = window.innerHeight;
+      const availH = Math.max(0, vh - rect.top - 24); // 下側に少し余白
+      setCanvasMaxH(availH);
+      const innerH = Math.max(0, availH - padY);
+      // グリッドの列間ギャップは可変（gridGap）
+      const gap = gridGap;
+      const maxByWidth = Math.floor((innerW - (size - 1) * gap - 2) / size);
+      const maxByHeight = Math.floor((innerH - (size - 1) * gap - 2) / size);
+      const maxCandidate = Math.min(maxByWidth, maxByHeight);
+      const capped = Math.max(4, Math.min(64, maxCandidate));
+      setFitCellPx(capped);
+      // ユーザがズーム未操作時のみフィット値を採用
+      if (!userZoomed) setCellPx(capped);
+    };
+    compute();
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => compute());
+      ro.observe(el);
+    } else {
+      const onResize = () => compute();
+      window.addEventListener('resize', onResize);
+      return () => window.removeEventListener('resize', onResize);
+    }
+    return () => { ro?.disconnect(); };
+  }, [size, userZoomed, gridGap]);
+
+  // サイズ変更時は自動フィットに戻す
+  useEffect(() => { setUserZoomed(false); }, [size]);
 
   // ドラフト内容を確定して履歴に積む
   function commit(next: number[]) {
@@ -174,18 +223,54 @@ export default function PixelArtEditor(props: PixelArtEditorProps) {
   }
 
   function handleSizeChange(nextSize: 16 | 32 | 64) {
+    const prevSize = size;
+    const prevPixels = pixels.slice();
+    // 最近傍でグリッドをリサンプリング（内容を保つ）
+    const out = new Array(nextSize * nextSize).fill(0);
+    for (let ny = 0; ny < nextSize; ny++) {
+      const sy = Math.min(prevSize - 1, Math.floor((ny * prevSize) / nextSize));
+      for (let nx = 0; nx < nextSize; nx++) {
+        const sx = Math.min(prevSize - 1, Math.floor((nx * prevSize) / nextSize));
+        out[ny * nextSize + nx] = prevPixels[sy * prevSize + sx] ?? 0;
+      }
+    }
     setSize(nextSize);
-    const empty = Array.from({ length: nextSize * nextSize }, () => 0);
-    setPixels(empty);
-    setHistory([empty.slice()]);
+    setPixels(out);
+    setHistory([out.slice()]);
     setHistoryPtr(0);
   }
 
-  function hexToRgb(hex: string): { r: number; g: number; b: number } {
-    const m = /^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex);
-    if (!m) return { r: 255, g: 255, b: 255 };
-    return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+  function hexToRgb(input: string): { r: number; g: number; b: number } {
+    // supports '#rrggbb' or 'rgb(r,g,b)'
+    const s = (input || '').trim();
+    const mHex = /^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(s);
+    if (mHex) return { r: parseInt(mHex[1], 16), g: parseInt(mHex[2], 16), b: parseInt(mHex[3], 16) };
+    const mRgb = /^rgb\s*\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i.exec(s);
+    if (mRgb) return { r: +mRgb[1], g: +mRgb[2], b: +mRgb[3] };
+    return { r: 255, g: 255, b: 255 };
   }
+
+  function clamp255(n: number) { return Math.max(0, Math.min(255, Math.round(n))); }
+  function toHex2(n: number) { const s = clamp255(n).toString(16).padStart(2, '0'); return s; }
+  function rgbToHex(r: number, g: number, b: number) { return `#${toHex2(r)}${toHex2(g)}${toHex2(b)}`; }
+  function applyRGB(r: number, g: number, b: number) {
+    const rr = clamp255(r), gg = clamp255(g), bb = clamp255(b);
+    setRVal(rr); setGVal(gg); setBVal(bb);
+    const hex = rgbToHex(rr, gg, bb);
+    setHexInput(hex);
+    const next = palette.slice();
+    next[color] = hex;
+    setPalette(next);
+  }
+
+  // 選択色変更時にチャンネル値とHEX入力を同期
+  useEffect(() => {
+    const { r, g, b } = hexToRgb(palette[color] ?? '#ffffff');
+    setRVal(clamp255(r));
+    setGVal(clamp255(g));
+    setBVal(clamp255(b));
+    setHexInput(rgbToHex(r, g, b));
+  }, [color, palette]);
 
   // `pixels` 配列から PNG を生成して Data URL を返す（オフスクリーンキャンバス使用）
   function buildPngDataUrl(scale: number, bg: 'transparent' | 'white'): string {
@@ -256,147 +341,213 @@ export default function PixelArtEditor(props: PixelArtEditorProps) {
   }
 
   return (
-    <div>
-      <h1 style={{ marginBottom: 12 }}>PixelArt エディタ（Client）</h1>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', marginBottom: 12 }}>
-        <label>
-          <span style={{ marginRight: 6 }}>タイトル</span>
+    <div className="editor-3col">
+      {/* 左サイド: 基本設定/書き出し/保存 */}
+      <aside className="editor-side-left">
+        {!props.hideTitle && <h1 style={{ margin: 0 }}>PixelArt エディタ（Client）</h1>}
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span>タイトル</span>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            style={{ padding: 6, minWidth: 240 }}
+            style={{ padding: 6, width: '100%' }}
           />
         </label>
-        <label>
-          <span style={{ marginRight: 6 }}>サイズ</span>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span>サイズ</span>
           <select
             value={size}
             onChange={(e) => handleSizeChange(Number(e.target.value) as 16 | 32 | 64)}
+            style={{ width: '100%' }}
           >
             <option value={16}>16</option>
             <option value={32}>32</option>
             <option value={64}>64</option>
           </select>
         </label>
-        <label>
-          <span style={{ marginRight: 6 }}>ズーム</span>
-          <input
-            type="range"
-            min={8}
-            max={32}
-            step={1}
-            value={cellPx}
-            onChange={(e) => setCellPx(Number(e.target.value))}
-          />
-          <span style={{ marginLeft: 6 }}>{cellPx}px</span>
-        </label>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          <input type="checkbox" checked={showGrid} onChange={(e) => setShowGrid(e.target.checked)} />
-          グリッド
-        </label>
-
-        <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-          <span>ツール:</span>
-          <button type="button" onClick={() => setTool('pen')} aria-pressed={tool === 'pen'}
-            style={{ padding: '4px 8px', border: tool === 'pen' ? '2px solid #06c' : '1px solid #ccc', cursor: 'pointer' }}>ペン</button>
-          <button type="button" onClick={() => setTool('eraser')} aria-pressed={tool === 'eraser'}
-            style={{ padding: '4px 8px', border: tool === 'eraser' ? '2px solid #06c' : '1px solid #ccc', cursor: 'pointer' }}>消し</button>
-          <button type="button" onClick={() => setTool('eyedropper')} aria-pressed={tool === 'eyedropper'}
-            style={{ padding: '4px 8px', border: tool === 'eyedropper' ? '2px solid #06c' : '1px solid #ccc', cursor: 'pointer' }}>スポイト</button>
-          <button type="button" onClick={() => setTool('fill')} aria-pressed={tool === 'fill'}
-            style={{ padding: '4px 8px', border: tool === 'fill' ? '2px solid #06c' : '1px solid #ccc', cursor: 'pointer' }}>塗り</button>
-        </div>
-
-        <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-          <button type="button" onClick={undo} disabled={historyPtr <= 0} style={{ padding: '4px 8px' }}>Undo</button>
-          <button type="button" onClick={redo} disabled={historyPtr >= history.length - 1} style={{ padding: '4px 8px' }}>Redo</button>
-        </div>
-        {!props.hideSaveButton && (
-          <button onClick={handleSave} disabled={isPending} style={{ padding: '6px 10px', cursor: 'pointer' }}>
-            {isPending ? '保存中…' : '保存'}
-          </button>
-        )}
-      </div>
-
-      <div
-        onMouseLeave={handlePointerUp}
-        style={{ display: 'grid', gridTemplateColumns: `repeat(${size}, ${cellPx}px)`, gap: 2, userSelect: 'none' }}
-      >
-        {grid.map((row, y) =>
-          row.map((v, x) => (
-            <div
-              key={`${x}-${y}`}
-              onMouseDown={() => handlePointerDown(x, y)}
-              onMouseEnter={() => handlePointerEnter(x, y)}
-              onMouseUp={handlePointerUp}
-              style={{
-                width: cellPx,
-                height: cellPx,
-                border: showGrid ? '1px solid #ddd' : 'none',
-                background: palette[v] ?? '#ffffff',
-                padding: 0,
-                cursor: tool === 'eyedropper' ? 'crosshair' : 'pointer',
-              }}
-              aria-label={`pixel-${x}-${y}`}
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span>ズーム</span>
+          <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+            <input
+              type="range"
+              min={4}
+              max={64}
+              step={1}
+              value={cellPx}
+              onChange={(e) => { setCellPx(Number(e.target.value)); setUserZoomed(true); }}
+              style={{ flex: 1 }}
             />
-          ))
-        )}
-      </div>
-
-      <div style={{ marginTop: 12 }}>
-        <div style={{ marginBottom: 6 }}>パレット</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {palette.map((c, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => setColor(i)}
-              aria-pressed={color === i}
-              title={`color-${i}`}
-              style={{
-                width: 24,
-                height: 24,
-                border: color === i ? '2px solid #06c' : '1px solid #ccc',
-                background: c,
-                cursor: 'pointer',
+            <input
+              type="number"
+              min={4}
+              max={64}
+              step={1}
+              value={cellPx}
+              onChange={(e) => {
+                const v = Math.max(4, Math.min(64, Number(e.target.value) || 4));
+                setCellPx(v);
+                setUserZoomed(true);
               }}
+              style={{ width: 80 }}
             />
-          ))}
+            <span>px</span>
+          </div>
+        </label>
+
+        <div className="card">
+          <strong>書き出し</strong>
+          <div style={{ marginTop: 8 }}>
+            <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+              <span>スケール</span>
+              <input
+                type="number"
+                min={1}
+                max={64}
+                step={1}
+                value={exportScale}
+                onChange={(e) => setExportScale(Math.max(1, Math.min(64, Number(e.target.value) || 1)))}
+                style={{ width: 80 }}
+              />
+            </div>
+            <div style={{ marginTop: 6, color: 'var(--muted)' }}>
+              出力解像度: {size * exportScale} x {size * exportScale}
+            </div>
+          </div>
+          <div className="row" style={{ alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'nowrap' }}>
+            <span style={{ writingMode: 'horizontal-tb' }}>背景</span>
+            <select
+              value={exportBg}
+              onChange={(e) => setExportBg(e.target.value as 'transparent' | 'white')}
+              style={{ flex: 1 }}
+            >
+              <option value="transparent">透明</option>
+              <option value="white">白</option>
+            </select>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+            <button type="button" onClick={handleCopyPng} className="btn btn-outline" style={{ width: '100%' }}>PNG をコピー</button>
+            <button type="button" onClick={handleDownloadPng} className="btn btn-outline" style={{ width: '100%' }}>PNG をダウンロード</button>
+          </div>
+          {exportMsg && <span style={{ color: '#090' }}>{exportMsg}</span>}
+        </div>
+
+        {props.leftFooter}
+      </aside>
+
+      {/* 中央: キャンバス */}
+      <div className="editor-canvas" ref={canvasRef} style={{ maxHeight: canvasMaxH ? `${canvasMaxH}px` : undefined }}>
+        <div
+          onMouseLeave={handlePointerUp}
+          style={{ display: 'grid', gridTemplateColumns: `repeat(${size}, ${cellPx}px)`, gap: gridGap, userSelect: 'none' }}
+        >
+          {grid.map((row, y) =>
+            row.map((v, x) => (
+              <div
+                key={`${x}-${y}`}
+                onMouseDown={() => handlePointerDown(x, y)}
+                onMouseEnter={() => handlePointerEnter(x, y)}
+                onMouseUp={handlePointerUp}
+                style={{
+                  width: cellPx,
+                  height: cellPx,
+                  border: showGrid ? `${gridLine}px solid #ddd` : 'none',
+                  backgroundColor: v === 0 ? '#ffffff' : (palette[v] ?? '#ffffff'),
+                  backgroundImage: 'none',
+                  backgroundSize: 'initial',
+                  backgroundPosition: 'initial',
+                  backgroundRepeat: 'initial',
+                  padding: 0,
+                  cursor: tool === 'eyedropper' ? 'crosshair' : 'pointer',
+                }}
+                aria-label={`pixel-${x}-${y}`}
+              />
+            ))
+          )}
         </div>
       </div>
-
-      <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
-        <strong>書き出し:</strong>
-        <label>
-          <span style={{ marginRight: 6 }}>スケール</span>
-          <input
-            type="number"
-            min={1}
-            max={64}
-            step={1}
-            value={exportScale}
-            onChange={(e) => setExportScale(Math.max(1, Math.min(64, Number(e.target.value) || 1)))}
-            style={{ width: 72 }}
-          />
-          <span style={{ marginLeft: 6 }}>
-            出力解像度: {size * exportScale} x {size * exportScale}
-          </span>
-        </label>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          背景
-          <select value={exportBg} onChange={(e) => setExportBg(e.target.value as 'transparent' | 'white')}>
-            <option value="transparent">透明</option>
-            <option value="white">白</option>
-          </select>
-        </label>
-        <button type="button" onClick={handleCopyPng} style={{ padding: '6px 10px' }}>
-          PNG をコピー
-        </button>
-        <button type="button" onClick={handleDownloadPng} style={{ padding: '6px 10px' }}>
-          PNG をダウンロード
-        </button>
-        {exportMsg && <span style={{ color: '#090' }}>{exportMsg}</span>}
-      </div>
+      {/* 右サイド: グリッド/ツール/パレット */}
+      <aside className="editor-side-right">
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <input type="checkbox" className="checkbox-sm" checked={showGrid} onChange={(e) => setShowGrid(e.target.checked)} />
+            グリッドを表示
+          </label>
+        </div>
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+            <button type="button" onClick={() => setTool('pen')} aria-pressed={tool === 'pen'} className="btn btn-sm btn-toggle">ペン</button>
+            <button type="button" onClick={() => setTool('eraser')} aria-pressed={tool === 'eraser'} className="btn btn-sm btn-toggle">消し</button>
+            <button type="button" onClick={() => setTool('eyedropper')} aria-pressed={tool === 'eyedropper'} className="btn btn-sm btn-toggle">スポイト</button>
+            <button type="button" onClick={() => setTool('fill')} aria-pressed={tool === 'fill'} className="btn btn-sm btn-toggle">塗り</button>
+          </div>
+          <div className="row" style={{ gap: 6 }}>
+            <button type="button" onClick={undo} disabled={historyPtr <= 0} className="btn btn-sm btn-outline">Undo</button>
+            <button type="button" onClick={redo} disabled={historyPtr >= history.length - 1} className="btn btn-sm btn-outline">Redo</button>
+          </div>
+        </div>
+        <div className="card">
+          <div style={{ marginBottom: 6, fontWeight: 600 }}>パレット</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {palette.map((c, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setColor(i)}
+                aria-pressed={color === i}
+                title={`color-${i}`}
+                style={{
+                  width: 24,
+                  height: 24,
+                  border: color === i ? '2px solid #06c' : '1px solid #ccc',
+                  background: c,
+                  cursor: 'pointer',
+                }}
+              />
+            ))}
+          </div>
+          {/* カラーピッカー（RGB） */}
+          <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 72px', gap: 8, alignItems: 'center', marginTop: 10 }}>
+            {/* プレビュー */}
+            <div style={{ gridColumn: '1 / span 3', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 56, height: 56, border: '1px solid var(--border)', background: palette[color] }} />
+              <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+                <span>#</span>
+                <input
+                  type="text"
+                  value={hexInput}
+                  onChange={(e) => setHexInput(e.target.value)}
+                  onBlur={() => { const { r, g, b } = hexToRgb(hexInput); applyRGB(r, g, b); }}
+                  style={{ width: 120 }}
+                />
+              </div>
+            </div>
+            {/* R */}
+            <span style={{ color: 'var(--muted)' }}>R</span>
+            <input
+              type="range" min={0} max={255} step={1} value={rVal}
+              onChange={(e) => applyRGB(Number(e.target.value), gVal, bVal)}
+              style={{ background: `linear-gradient(90deg, rgb(0,${gVal},${bVal}), rgb(255,${gVal},${bVal}))` }}
+            />
+            <input type="number" min={0} max={255} value={rVal} onChange={(e) => applyRGB(Number(e.target.value), gVal, bVal)} />
+            {/* G */}
+            <span style={{ color: 'var(--muted)' }}>G</span>
+            <input
+              type="range" min={0} max={255} step={1} value={gVal}
+              onChange={(e) => applyRGB(rVal, Number(e.target.value), bVal)}
+              style={{ background: `linear-gradient(90deg, rgb(${rVal},0,${bVal}), rgb(${rVal},255,${bVal}))` }}
+            />
+            <input type="number" min={0} max={255} value={gVal} onChange={(e) => applyRGB(rVal, Number(e.target.value), bVal)} />
+            {/* B */}
+            <span style={{ color: 'var(--muted)' }}>B</span>
+            <input
+              type="range" min={0} max={255} step={1} value={bVal}
+              onChange={(e) => applyRGB(rVal, gVal, Number(e.target.value))}
+              style={{ background: `linear-gradient(90deg, rgb(${rVal},${gVal},0), rgb(${rVal},${gVal},255))` }}
+            />
+            <input type="number" min={0} max={255} value={bVal} onChange={(e) => applyRGB(rVal, gVal, Number(e.target.value))} />
+          </div>
+        </div>
+      </aside>
     </div>
   );
 }

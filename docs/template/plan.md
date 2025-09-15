@@ -1,5 +1,7 @@
 # PLAN-XXXX: {{TASK_NAME}}
 
+> 保存先: `docs/plans/PLAN-XXXX-<slug>.md`（IMPL は `docs/impl-reports` 配置）
+
 - **Date**: {{YYYY-MM-DD}}
 - **Owner**: @{{owner}}
 - **Scope**: BE | FE | Infra | Docs
@@ -56,8 +58,7 @@
 ## 9. 生成/更新すべきドキュメント（Artifacts to Produce）
 
 - `docs/impl-reports/IMPL-XXXX-{{date}}-{{slug}}.md`
-- `docs/specs/*`（具体パス）
- - `docs/spec/*`（具体パス）
+- `docs/spec/*`（具体パス）
 - 関連 ADR（必要なら新規作成）
 
 ## 10. 参照（References）

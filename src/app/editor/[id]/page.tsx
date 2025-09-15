@@ -2,9 +2,9 @@
 // - `src/app/editor/[id]/page.tsx` は `/editor/:id` にマップされる
 // - `params` から URL の `id` を受け取り、DB から初期値を取得して Editor に渡す
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import PixelArtEditorConform from '@/components/editor/PixelArtEditorConform';
 import prisma from '@/lib/prisma';
+ 
 
 export default async function EditEditorPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -18,19 +18,27 @@ export default async function EditEditorPage({ params }: { params: Promise<{ id:
     return (
       <main style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
         <p>作品が見つかりません。</p>
-        <Link href="/my/arts" style={{ color: '#06c' }}>一覧へ戻る</Link>
+        <Link href="/my/arts" className="btn btn-outline btn-sm">一覧へ戻る</Link>
       </main>
     );
   }
 
   return (
     <main style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
-      <div style={{ marginBottom: 12 }}>
-        <Link href={`/art/${art.id}`} style={{ color: '#06c' }}>詳細へ戻る</Link>
+      <div className="editor-page">
+        <div className="row" style={{ justifyContent: 'space-between', marginBottom: 12 }}>
+          <h1 style={{ margin: 0 }}>PixelArt エディタ（Client）</h1>
+          <div className="row" style={{ gap: 8 }}>
+            <Link href="/my/arts" className="btn btn-outline btn-sm">一覧へ戻る</Link>
+          </div>
+        </div>
+        <div className="editor-body">
+          <PixelArtEditorConform
+            initial={{ id: art.id, title: art.title, size: art.size as 16 | 32 | 64, pixels: (art.pixels as any) as number[] }}
+            hideTitle
+          />
+        </div>
       </div>
-      <PixelArtEditorConform
-        initial={{ id: art.id, title: art.title, size: art.size as 16 | 32 | 64, pixels: (art.pixels as any) as number[] }}
-      />
     </main>
   );
 }

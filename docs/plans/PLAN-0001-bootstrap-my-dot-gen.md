@@ -64,7 +64,7 @@
 
 ## 9. 生成/更新すべきドキュメント（Artifacts to Produce）
 
-- `docs/spec/IMPL-0001-bootstrap-my-dot-gen.md`（現況仕様/実装レポート）
+- `docs/impl-reports/IMPL-0001-bootstrap-my-dot-gen.md`（現況仕様/実装レポート）
 - `docs/spec/*`（既存: 概要設計/画面遷移/フロー/DB 定義）
 
 ## 10. 参照（References）
@@ -74,4 +74,3 @@
 - DB/Prisma: `prisma/schema.prisma`, `src/lib/prisma.ts`
 - ストレージ: `src/lib/storage/*`
 - 画像ユーティリティ: `src/lib/image/pixelate.ts`
-
