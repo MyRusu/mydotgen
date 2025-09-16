@@ -22,8 +22,8 @@ export default async function ArtDetailPage({ params }: { params: Promise<{ id: 
   }
 
   return (
-    <main style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
-      <h1 style={{ marginBottom: 28, textAlign: 'center' }}>作品詳細（RSC / Prisma）</h1>
+    <main className="art-detail-page" style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
+      <h1 style={{ marginBottom: 28, textAlign: 'center' }}>作品詳細</h1>
       {/* 画像とテキストを横並びに（カード枠＋中央寄せ） */}
       <div className="card" style={{ padding: 16, display: 'flex', gap: 24, alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', marginBottom: 16, marginLeft: 'auto', marginRight: 'auto', maxWidth: 960 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

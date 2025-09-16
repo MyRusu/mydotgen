@@ -1,4 +1,4 @@
--- Initial migration for My Dot GEN (PostgreSQL)
+-- Initial migration for My Dot Gen (PostgreSQL)
 
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
@@ -89,4 +89,3 @@ ALTER TABLE "public"."ImageAsset" ADD CONSTRAINT "ImageAsset_artId_fkey" FOREIGN
 
 -- AddForeignKey
 ALTER TABLE "public"."PublishEntry" ADD CONSTRAINT "PublishEntry_artId_fkey" FOREIGN KEY ("artId") REFERENCES "public"."PixelArt"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-

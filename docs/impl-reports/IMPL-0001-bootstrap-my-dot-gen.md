@@ -1,4 +1,4 @@
-# IMPL-0001: 初期実装（My Dot GEN）
+# IMPL-0001: 初期実装（My Dot Gen）
 
 - **Date**: 2025-09-12
 - **Owner**: @my

@@ -25,8 +25,15 @@ const BodySchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    // レート制限: 60 秒あたり 5 回（ユーザ or IP）
+    // 認証必須
     const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json(
+        { ok: false, code: 'UNAUTHORIZED', message: 'サインインが必要です。' },
+        { status: 401 }
+      );
+    }
+    // レート制限: 60 秒あたり 5 回（ユーザ or IP）
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || (req as any).ip || 'unknown';
     const rlKey = session?.user?.email || `ip:${ip}`;
     const rl = rateLimit(`gen:${rlKey}`, { limit: 5, windowMs: 60_000 });

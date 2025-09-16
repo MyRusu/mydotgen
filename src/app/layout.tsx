@@ -13,17 +13,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="ja">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>My Dot GEN</title>
+        <title>My Dot Gen</title>
       </head>
       <body className="site">
         <header className="site-header">
           <div className="container inner">
             <div className="nav">
-              <Link href="/" className="brand">My Dot GEN</Link>
+              <Link href="/" className="brand">My Dot Gen</Link>
               <span className="muted">|</span>
-              <Link href="/generate">生成</Link>
-              <Link href="/editor">新規エディタ</Link>
-              <Link href="/my/arts">マイ作品</Link>
+              <Link href="/generate?fresh=1" className="btn btn-ghost btn-sm">画像生成</Link>
+              <Link href="/editor" className="btn btn-ghost btn-sm">新規エディタ</Link>
+              <Link href="/my/arts" className="btn btn-ghost btn-sm">My作品</Link>
             </div>
             <div className="nav">
               {session?.user ? (
@@ -34,7 +34,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   </form>
                 </>
               ) : (
-                <Link href="/auth/sign-in">サインイン</Link>
+                <Link href="/auth/sign-in" className="btn btn-ghost btn-sm">サインイン</Link>
               )}
             </div>
           </div>

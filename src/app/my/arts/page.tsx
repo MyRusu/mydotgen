@@ -29,10 +29,10 @@ export default async function MyArtsPage() {
   }
 
   return (
-    <main style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
+    <main className="my-arts-page" style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h1 style={{ margin: 0 }}>マイ作品一覧（RSC）</h1>
-        <Link href="/editor" className="btn">新規作成（エディタ）</Link>
+        <h1 style={{ margin: 0 }}>マイ作品一覧</h1>
+        <Link href="/editor" className="btn">新規作成</Link>
       </div>
 
       <div className="cards-grid">

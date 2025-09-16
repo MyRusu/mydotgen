@@ -30,8 +30,6 @@ export default function ImportEditorPage() {
         return;
       }
       setSeed(parsed);
-      // 一度読み込んだらクリア（再読み込み時は生成ページから再作成）
-      localStorage.removeItem('pixelart:seed');
     } catch (e) {
       setError('読み込みに失敗しました');
     }
@@ -74,7 +72,7 @@ export default function ImportEditorPage() {
     <main style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
       <div className="editor-page">
         <div className="row" style={{ justifyContent: 'space-between', marginBottom: 12 }}>
-          <h1 style={{ margin: 0 }}>PixelArt エディタ（Client）</h1>
+          <h1 style={{ margin: 0 }}>PixelArt エディタ</h1>
           <Link href="/my/arts" className="btn btn-outline btn-sm">一覧へ戻る</Link>
         </div>
         <div className="editor-body">

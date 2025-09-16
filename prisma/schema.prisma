@@ -1,4 +1,4 @@
-// Prisma schema for My Dot GEN
+// Prisma schema for My Dot Gen
 // - ドット絵（PixelArt）と関連リソース（画像アセット、公開エントリ）を管理します。
 // - `User.id` は外部 ID（email）をそのまま内部 ID として使用します。
 

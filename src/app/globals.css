@@ -31,6 +31,8 @@ body.site {
 
 a { color: var(--primary); text-decoration: none; transition: color .15s ease; }
 a:hover { color: var(--primary-700); text-decoration: underline; }
+/* Buttons (anchor as button) should never show underline */
+.btn, .btn:hover { text-decoration: none; }
 
 button, .btn {
   appearance: none;
@@ -53,8 +55,14 @@ button:disabled { opacity: .6; cursor: not-allowed; }
 .btn-ghost { background: #fff; color: var(--text); border-color: var(--border); }
 .btn-ghost:hover { background: #f9fafb; }
 .btn-danger { background: var(--danger); border-color: var(--danger); }
-.btn-danger:hover { background: var(--danger-700); }
+.btn-danger:hover { background: #fff; color: var(--danger); border-color: var(--danger); box-shadow: var(--shadow-sm); }
 .btn-sm { padding: 4px 8px; font-size: 0.9em; border-radius: 6px; }
+
+/* Stylish extras used in navigation */
+.btn-pill { border-radius: 999px; }
+.btn-elevated { background: linear-gradient(180deg, var(--primary), var(--primary-700)); border-color: transparent; box-shadow: 0 6px 16px rgba(37, 99, 235, 0.18); }
+.btn-elevated:hover { filter: brightness(1.03); }
+.btn-elevated:active { transform: translateY(1px) scale(0.99); }
 
 /* Toggle-style buttons (use aria-pressed) */
 .btn-toggle { background: #fff; color: var(--text); border-color: var(--border); }
@@ -105,8 +113,58 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 4px var(--ring); b
 .card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
 
 .hero { padding: 24px 0; }
-.hero-title { margin: 0 0 6px; font-size: 28px; line-height: 1.2; }
-.hero-lead { margin: 0; color: var(--muted); }
+.hero-title { margin: 0 0 10px; font-size: 28px; line-height: 1.2; text-align: center; }
+.hero-lead { margin: 0 0 60px; color: var(--muted); text-align: center; }
+/* Center the top navigation buttons on the hero */
+.hero nav.row { justify-content: center; gap: 16px; }
+/* Make hero ghost buttons distinct from page bg on hover */
+.hero .btn-ghost:hover { background: #eef2ff; }
+/* Top hero nav buttons: hover → white bg + blue text */
+.hero nav.row .btn:hover { background: #fff; color: var(--primary); border-color: var(--primary); box-shadow: var(--shadow-sm); }
+/* Header nav buttons on all pages: hover → white bg + blue text */
+.nav .btn:hover { background: #fff; color: var(--primary); border-color: var(--primary); box-shadow: var(--shadow-sm); }
+
+/* Page-scoped button hover style (exclude destructive) */
+.gen-page .btn:hover:not(.btn-danger),
+.my-arts-page .btn:hover:not(.btn-danger):not(.btn-outline),
+.editor-new-page .btn:hover:not(.btn-danger):not(.btn-toggle):not(.btn-outline),
+.editor-page .btn:hover:not(.btn-danger):not(.btn-toggle):not(.btn-outline),
+.art-detail-page .btn:hover:not(.btn-danger):not(.btn-outline) {
+  background: #fff;
+  color: var(--primary);
+  border-color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+/* Explicitly ensure download (outline) on generate page inverts */
+.gen-page .btn-outline:hover {
+  background: #fff;
+  color: var(--primary);
+  border-color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Utility: force invert on hover */
+.btn-invert:hover {
+  background: #fff;
+  color: var(--primary);
+  border-color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+/* Inverted button base (e.g., download) */
+.btn-invert {
+  background: #fff;
+  color: var(--primary);
+  border-color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+/* When used together with outline, prefer inverted look */
+.btn-outline.btn-invert,
+.btn-outline.btn-invert:hover {
+  background: #fff;
+  color: var(--primary);
+  border-color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
 
 .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .stack > * + * { margin-top: 12px; }
@@ -134,3 +192,20 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 4px var(--ring); b
 .editor-3col { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(0, 6fr) minmax(320px, 3fr); gap: 24px; align-items: start; }
 .editor-side-left, .editor-side-right { position: sticky; top: 72px; display: flex; flex-direction: column; gap: 12px; }
 @media (max-width: 1200px) { .editor-3col { grid-template-columns: 1fr; } .editor-side-left, .editor-side-right { position: static; } }
+
+/* Global mobile spacing tweaks */
+@media (max-width: 640px) {
+  .container { padding: 0 16px; }
+  .page { padding: 16px 0 32px; }
+  .site-header .inner { height: 52px; gap: 12px; }
+  .nav { gap: 10px; }
+
+  .hero { padding: 16px 0; }
+  .hero-title { font-size: 24px; }
+  .hero-lead { margin-bottom: 40px; }
+  .hero nav.row { gap: 12px; }
+
+  .card { padding: 12px; }
+
+  button, .btn { padding: 7px 10px; }
+}

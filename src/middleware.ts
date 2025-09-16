@@ -10,5 +10,11 @@ export default withAuth({
 
 export const config = {
   // 認証が必要なパス（配列 or グロブ）。ここに含まれるページは保護されます。
-  matcher: ['/editor', '/editor/:path*', '/my/arts'],
+  matcher: [
+    '/editor',
+    '/editor/:path*',
+    '/my/arts',
+    '/generate',
+    '/api/generate',
+  ],
 };
