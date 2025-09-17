@@ -92,7 +92,15 @@ export default async function GalleryPage({ searchParams }: { searchParams: Prom
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'center' }}>
-                <PixelArtPreview size={art.size} pixels={art.pixels} maxPx={200} />
+                {entry.thumbUrl ? (
+                  <img
+                    src={entry.thumbUrl}
+                    alt={`${entry.title} のサムネイル`}
+                    style={{ width: 200, height: 'auto', borderRadius: 8, border: '1px solid #e2e8f0' }}
+                  />
+                ) : (
+                  <PixelArtPreview size={art.size} pixels={art.pixels} maxPx={200} />
+                )}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <Link href={`/p/${entry.slug}`} style={{ fontWeight: 600, color: '#0f172a', textDecoration: 'none' }}>

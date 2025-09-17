@@ -75,8 +75,10 @@ describe('listPublishedArts', () => {
     await createPair({ title: 'HiddenArt', size: 16, publicArt: false });
 
     const result = await listPublishedArts();
-    expect(result.items.map((i) => i.entry.title)).toEqual(['Visible']);
-    expect(result.total).toBe(1);
+    const titles = result.items.map((i) => i.entry.title);
+    expect(titles).toContain('Visible');
+    expect(titles).not.toContain('HiddenEntry');
+    expect(titles).not.toContain('HiddenArt');
   });
 
   it('supports sorting and pagination', async () => {

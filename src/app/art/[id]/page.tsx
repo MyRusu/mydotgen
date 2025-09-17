@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import DeleteButtonForm from '@/components/DeleteButtonForm';
+import CopyButton from '@/components/CopyButton';
 import { deletePixelArt, updatePixelArtPublic } from '@/app/actions/pixelArt';
 import { upsertPublishEntry } from '@/app/actions/publishEntry';
 import PixelArtPreview from '@/components/PixelArtPreview';
@@ -17,8 +18,12 @@ export default async function ArtDetailPage({ params }: { params: Promise<{ id: 
 
   const publishEntry = await prisma.publishEntry.findFirst({
     where: { artId: art.id },
-    select: { id: true, slug: true, title: true, body: true },
+    select: { id: true, slug: true, title: true, body: true, thumbUrl: true },
   });
+
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '');
+  const sharePath = publishEntry?.slug ? `/p/${publishEntry.slug}` : null;
+  const shareUrl = sharePath ? `${baseUrl}${sharePath}` || sharePath : '';
 
   async function onDelete(formData: FormData) {
     'use server';
@@ -41,13 +46,18 @@ export default async function ArtDetailPage({ params }: { params: Promise<{ id: 
     if (!title) return;
     const slugValue = formData.get('publishSlug');
     const bodyValue = formData.get('publishBody');
-    await upsertPublishEntry({
+    const result = await upsertPublishEntry({
       artId: art.id,
       title,
       slug: typeof slugValue === 'string' && slugValue.trim().length ? slugValue : undefined,
       body: typeof bodyValue === 'string' ? bodyValue : undefined,
     });
     revalidatePath(`/art/${art.id}`);
+    revalidatePath('/gallery');
+    revalidatePath(`/p/${result.slug}`);
+    if (result.previousSlug && result.previousSlug !== result.slug) {
+      revalidatePath(`/p/${result.previousSlug}`);
+    }
   }
 
   return (
@@ -83,6 +93,53 @@ export default async function ArtDetailPage({ params }: { params: Promise<{ id: 
 
       <section style={{ marginBottom: 32 }}>
         <h2 style={{ marginBottom: 16, textAlign: 'center', fontSize: '1.25rem' }}>公開設定</h2>
+        {publishEntry && (
+          <div
+            style={{
+              maxWidth: 640,
+              margin: '0 auto 16px',
+              padding: 16,
+              borderRadius: 8,
+              border: '1px solid #e2e8f0',
+              backgroundColor: '#ffffff',
+              display: 'flex',
+              gap: 16,
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div style={{ flex: '1 1 260px', minWidth: 0 }}>
+              <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>公開 URL</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <code style={{ fontSize: 14, color: '#0f172a' }}>{sharePath}</code>
+                {sharePath ? (
+                  <CopyButton
+                    text={shareUrl || sharePath}
+                    label="URL をコピー"
+                    copiedLabel="コピー済み"
+                    className="btn btn-outline btn-sm"
+                  />
+                ) : null}
+                <Link href={sharePath ?? '#'} className="btn btn-sm" aria-disabled={!sharePath}>
+                  公開ページを開く
+                </Link>
+              </div>
+            </div>
+            <div style={{ flex: '0 1 180px', textAlign: 'center' }}>
+              <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>共有サムネイル</div>
+              {publishEntry.thumbUrl ? (
+                <img
+                  src={publishEntry.thumbUrl}
+                  alt={`${publishEntry.title} の共有サムネイル`}
+                  style={{ width: 160, height: 'auto', borderRadius: 8, border: '1px solid #e2e8f0' }}
+                />
+              ) : (
+                <PixelArtPreview size={art.size as 16 | 32 | 64} pixels={(art.pixels as any) as number[]} maxPx={160} />
+              )}
+            </div>
+          </div>
+        )}
         <form
           action={onSavePublish}
           style={{

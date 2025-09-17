@@ -15,6 +15,7 @@ export const PublishEntryBaseSchema = z.object({
   title: z.string().trim().min(1).max(100),
   body: z.string().max(10000).optional(),
   public: z.boolean().default(true),
+  thumbUrl: z.string().url().optional(),
 });
 
 export const PublishEntrySchema = PublishEntryBaseSchema.extend({
@@ -34,4 +35,3 @@ export const PublishEntryUpdateInputSchema = PublishEntryBaseSchema.extend({
 export type PublishEntry = z.infer<typeof PublishEntrySchema>;
 export type PublishEntryCreateInput = z.infer<typeof PublishEntryCreateInputSchema>;
 export type PublishEntryUpdateInput = z.infer<typeof PublishEntryUpdateInputSchema>;
-

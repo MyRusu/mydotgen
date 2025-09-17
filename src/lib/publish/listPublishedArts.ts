@@ -14,6 +14,7 @@ export type PublishedArtListItem = {
     slug: string;
     title: string;
     updatedAt: Date;
+    thumbUrl: string | null;
   };
   art: {
     id: string;
@@ -86,6 +87,7 @@ export async function listPublishedArts({ page = 1, pageSize = 12, sort }: ListP
         slug: true,
         title: true,
         updatedAt: true,
+        thumbUrl: true,
         art: {
           select: {
             id: true,
@@ -117,6 +119,7 @@ export async function listPublishedArts({ page = 1, pageSize = 12, sort }: ListP
       slug: entry.slug,
       title: entry.title,
       updatedAt: entry.updatedAt,
+      thumbUrl: entry.thumbUrl ?? null,
     },
     art: {
       id: entry.art.id,

@@ -5,6 +5,7 @@ import { logEvent } from '@/lib/log';
 import { requireUserId } from '@/app/actions/_auth';
 import { PublishEntryEditorFormSchema } from '@/lib/schemas/forms/publishEntryEditor';
 import { createBaseSlug, composeSlugWithSuffix } from '@/lib/publish/slug';
+import { generateAndStoreShareThumbnail } from '@/lib/publish/shareThumbnail';
 
 export type PublishEntryResult = {
   id: string;
@@ -14,6 +15,8 @@ export type PublishEntryResult = {
   body: string | null;
   public: boolean;
   updatedAt: Date;
+  thumbUrl: string | null;
+  previousSlug?: string | null;
 };
 
 async function generateUniqueSlug(base: string, excludeId?: string): Promise<string> {
@@ -34,14 +37,14 @@ export async function upsertPublishEntry(input: unknown): Promise<PublishEntryRe
   const data = PublishEntryEditorFormSchema.parse(input);
   const art = await prisma.pixelArt.findUnique({
     where: { id: data.artId },
-    select: { id: true, userId: true, public: true, title: true },
+    select: { id: true, userId: true, public: true, title: true, size: true, pixels: true },
   });
   if (!art) throw new Error('NotFound');
   if (art.userId !== userId) throw new Error('Forbidden');
 
   const existing = await prisma.publishEntry.findFirst({
     where: { artId: data.artId },
-    select: { id: true, slug: true, public: true },
+    select: { id: true, slug: true, public: true, thumbUrl: true },
   });
 
   const providedSlug = data.slug?.toLowerCase();
@@ -64,15 +67,15 @@ export async function upsertPublishEntry(input: unknown): Promise<PublishEntryRe
     public: existing?.public ?? art.public,
   } as const;
 
-  const result = existing
+  let result = existing
     ? await prisma.publishEntry.update({
         where: { id: existing.id },
         data: payload,
-        select: { id: true, artId: true, slug: true, title: true, body: true, public: true, updatedAt: true },
+        select: { id: true, artId: true, slug: true, title: true, body: true, public: true, updatedAt: true, thumbUrl: true },
       })
     : await prisma.publishEntry.create({
         data: payload,
-        select: { id: true, artId: true, slug: true, title: true, body: true, public: true, updatedAt: true },
+        select: { id: true, artId: true, slug: true, title: true, body: true, public: true, updatedAt: true, thumbUrl: true },
       });
 
   logEvent('publish.upsert', {
@@ -82,5 +85,41 @@ export async function upsertPublishEntry(input: unknown): Promise<PublishEntryRe
     slug: result.slug,
   });
 
-  return result;
+  const artPixels = Array.isArray(art.pixels) ? (art.pixels as unknown[]).map((value) => Number(value) || 0) : [];
+  let generatedThumbUrl: string | undefined;
+
+  if (artPixels.length === art.size * art.size) {
+    try {
+      const saved = await generateAndStoreShareThumbnail({
+        artId: art.id,
+        size: art.size as 16 | 32 | 64,
+        pixels: artPixels,
+      });
+      generatedThumbUrl = saved.url;
+      logEvent('publish.thumb.generated', {
+        userId,
+        artId: art.id,
+        publishEntryId: result.id,
+        url: saved.url,
+        bytes: saved.sizeBytes,
+      });
+    } catch (error) {
+      logEvent('publish.thumb.error', {
+        userId,
+        artId: art.id,
+        publishEntryId: result.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  if (generatedThumbUrl && generatedThumbUrl !== result.thumbUrl) {
+    result = await prisma.publishEntry.update({
+      where: { id: result.id },
+      data: { thumbUrl: generatedThumbUrl },
+      select: { id: true, artId: true, slug: true, title: true, body: true, public: true, updatedAt: true, thumbUrl: true },
+    });
+  }
+
+  return { ...result, previousSlug: existing?.slug ?? null };
 }
