@@ -4,8 +4,36 @@ import PixelArtPreview from '@/components/PixelArtPreview';
 import { getPublishedArtBySlug } from '@/lib/publish/getPublishedArt';
 import { renderMarkdownToHtml } from '@/lib/markdown/render';
 
-export default async function PublicArtPage({ params }: { params: Promise<{ slug: string }> }) {
+type SearchParams = Record<string, string | string[] | undefined>;
+
+function firstParam(value: string | string[] | undefined): string | undefined {
+  if (Array.isArray(value)) return value[0];
+  return value;
+}
+
+export default async function PublicArtPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams?: Promise<SearchParams> | SearchParams;
+}) {
   const { slug } = await params;
+  const resolvedSearch = searchParams ? await searchParams : {};
+  const fromQuery = firstParam(resolvedSearch?.from);
+  const pageParam = firstParam(resolvedSearch?.page);
+  const sortParam = firstParam(resolvedSearch?.sort);
+  const fromGallery = fromQuery === 'gallery';
+
+  const galleryParams = new URLSearchParams();
+  if (fromGallery) {
+    if (pageParam && Number(pageParam) > 1) galleryParams.set('page', pageParam);
+    if (sortParam && ['latest', 'oldest', 'title', 'size'].includes(sortParam) && sortParam !== 'latest') {
+      galleryParams.set('sort', sortParam);
+    }
+  }
+  const galleryBackHref = galleryParams.toString() ? `/gallery?${galleryParams.toString()}` : '/gallery';
+
   const published = await getPublishedArtBySlug(slug);
   if (!published) return notFound();
 
@@ -56,7 +84,7 @@ export default async function PublicArtPage({ params }: { params: Promise<{ slug
       </section>
 
       <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <Link href="/gallery" className="btn btn-outline btn-sm">
+        <Link href={fromGallery ? galleryBackHref : '/gallery'} className="btn btn-outline btn-sm">
           ギャラリーに戻る
         </Link>
       </div>

@@ -19,6 +19,15 @@ function buildPageLink(page: number, sort: string) {
   return query ? `/gallery?${query}` : '/gallery';
 }
 
+function buildDetailLink(slug: string, page: number, sort: string) {
+  const params = new URLSearchParams();
+  params.set('from', 'gallery');
+  if (page > 1) params.set('page', String(page));
+  if (sort !== 'latest') params.set('sort', sort);
+  const query = params.toString();
+  return query ? `/p/${slug}?${query}` : `/p/${slug}`;
+}
+
 export default async function GalleryPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const resolved = await searchParams;
   const parsed = QuerySchema.parse({
@@ -78,7 +87,9 @@ export default async function GalleryPage({ searchParams }: { searchParams: Prom
             marginBottom: 32,
           }}
         >
-          {items.map(({ entry, art, author }) => (
+          {items.map(({ entry, art, author }) => {
+            const detailHref = buildDetailLink(entry.slug, page, sort);
+            return (
             <article
               key={entry.id}
               style={{
@@ -103,7 +114,7 @@ export default async function GalleryPage({ searchParams }: { searchParams: Prom
                 )}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <Link href={`/p/${entry.slug}`} style={{ fontWeight: 600, color: '#0f172a', textDecoration: 'none' }}>
+                <Link href={detailHref} style={{ fontWeight: 600, color: '#0f172a', textDecoration: 'none' }}>
                   {entry.title}
                 </Link>
                 <div style={{ fontSize: 13, color: '#475569', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -115,12 +126,13 @@ export default async function GalleryPage({ searchParams }: { searchParams: Prom
                 </time>
               </div>
               <div style={{ marginTop: 'auto' }}>
-                <Link href={`/p/${entry.slug}`} className="btn btn-outline btn-sm">
+                <Link href={detailHref} className="btn btn-outline btn-sm">
                   詳細を見る
                 </Link>
               </div>
             </article>
-          ))}
+          );
+          })}
         </section>
       )}
 
