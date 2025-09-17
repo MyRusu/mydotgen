@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import type { Route } from 'next';
 import { listPublishedArts } from '@/lib/publish/listPublishedArts';
 import PixelArtPreview from '@/components/PixelArtPreview';
 import { z } from 'zod';
@@ -20,13 +21,13 @@ function buildPageLink(page: number, sort: string) {
   return query ? `/gallery?${query}` : '/gallery';
 }
 
-function buildDetailLink(slug: string, page: number, sort: string) {
+function buildDetailLink(slug: string, page: number, sort: string): Route {
   const params = new URLSearchParams();
   params.set('from', 'gallery');
   if (page > 1) params.set('page', String(page));
   if (sort !== 'latest') params.set('sort', sort);
   const query = params.toString();
-  return query ? `/p/${slug}?${query}` : `/p/${slug}`;
+  return (query ? `/p/${slug}?${query}` : `/p/${slug}`) as Route;
 }
 
 export default async function GalleryPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
