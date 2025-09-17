@@ -4,8 +4,6 @@ import PixelArtPreview from '@/components/PixelArtPreview';
 import { getPublishedArtBySlug } from '@/lib/publish/getPublishedArt';
 import { renderMarkdownToHtml } from '@/lib/markdown/render';
 
-type SearchParams = Record<string, string | string[] | undefined>;
-
 function firstParam(value: string | string[] | undefined): string | undefined {
   if (Array.isArray(value)) return value[0];
   return value;
@@ -14,12 +12,9 @@ function firstParam(value: string | string[] | undefined): string | undefined {
 export default async function PublicArtPage({
   params,
   searchParams,
-}: {
-  params: { slug: string };
-  searchParams?: SearchParams;
-}) {
-  const { slug } = params;
-  const resolvedSearch = searchParams ?? {};
+}: PageProps<'/p/[slug]'>) {
+  const { slug } = await params;
+  const resolvedSearch = await searchParams;
   const fromQuery = firstParam(resolvedSearch?.from);
   const pageParam = firstParam(resolvedSearch?.page);
   const sortParam = firstParam(resolvedSearch?.sort);

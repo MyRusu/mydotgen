@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import type { Route } from 'next';
 import prisma from '@/lib/prisma';
 import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
@@ -16,6 +17,8 @@ export default async function ArtDetailPage({ params }: { params: Promise<{ id: 
     select: { id: true, title: true, size: true, public: true, updatedAt: true, pixels: true },
   });
   if (!art) return notFound();
+  const artId = art.id;
+  const artIsPublic = art.public;
 
   const publishEntry = await prisma.publishEntry.findFirst({
     where: { artId: art.id },
@@ -25,6 +28,7 @@ export default async function ArtDetailPage({ params }: { params: Promise<{ id: 
   const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '');
   const sharePath = publishEntry?.slug ? `/p/${publishEntry.slug}` : null;
   const shareUrl = sharePath ? `${baseUrl}${sharePath}` || sharePath : '';
+  const shareHref: Route | undefined = sharePath ? (sharePath as Route) : undefined;
 
   async function onDelete(formData: FormData) {
     'use server';
@@ -36,8 +40,8 @@ export default async function ArtDetailPage({ params }: { params: Promise<{ id: 
 
   async function onTogglePublic() {
     'use server';
-    await updatePixelArtPublic({ id: art.id, public: !art.public });
-    revalidatePath(`/art/${art.id}`);
+    await updatePixelArtPublic({ id: artId, public: !artIsPublic });
+    revalidatePath(`/art/${artId}`);
     revalidatePath('/my/arts');
   }
 
@@ -48,12 +52,12 @@ export default async function ArtDetailPage({ params }: { params: Promise<{ id: 
     const slugValue = formData.get('publishSlug');
     const bodyValue = formData.get('publishBody');
     const result = await upsertPublishEntry({
-      artId: art.id,
+      artId,
       title,
       slug: typeof slugValue === 'string' && slugValue.trim().length ? slugValue : undefined,
       body: typeof bodyValue === 'string' ? bodyValue : undefined,
     });
-    revalidatePath(`/art/${art.id}`);
+    revalidatePath(`/art/${artId}`);
     revalidatePath('/gallery');
     revalidatePath(`/p/${result.slug}`);
     if (result.previousSlug && result.previousSlug !== result.slug) {
@@ -122,9 +126,15 @@ export default async function ArtDetailPage({ params }: { params: Promise<{ id: 
                     className="btn btn-outline btn-sm"
                   />
                 ) : null}
-                <Link href={sharePath ?? '#'} className="btn btn-sm" aria-disabled={!sharePath}>
-                  公開ページを開く
-                </Link>
+                {shareHref ? (
+                  <Link href={shareHref} className="btn btn-sm">
+                    公開ページを開く
+                  </Link>
+                ) : (
+                  <span className="btn btn-sm btn-disabled" aria-disabled>
+                    公開ページを開く
+                  </span>
+                )}
               </div>
             </div>
             <div style={{ flex: '0 1 180px', textAlign: 'center' }}>
