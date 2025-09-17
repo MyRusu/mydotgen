@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { listPublishedArts } from '@/lib/publish/listPublishedArts';
 import PixelArtPreview from '@/components/PixelArtPreview';
 import { z } from 'zod';
@@ -104,9 +105,11 @@ export default async function GalleryPage({ searchParams }: { searchParams: Prom
             >
               <div style={{ display: 'flex', justifyContent: 'center' }}>
                 {entry.thumbUrl ? (
-                  <img
+                  <Image
                     src={entry.thumbUrl}
                     alt={`${entry.title} のサムネイル`}
+                    width={200}
+                    height={200}
                     style={{ width: 200, height: 'auto', borderRadius: 8, border: '1px solid #e2e8f0' }}
                   />
                 ) : (

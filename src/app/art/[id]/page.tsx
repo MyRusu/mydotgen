@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import prisma from '@/lib/prisma';
 import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
@@ -129,9 +130,11 @@ export default async function ArtDetailPage({ params }: { params: Promise<{ id: 
             <div style={{ flex: '0 1 180px', textAlign: 'center' }}>
               <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>共有サムネイル</div>
               {publishEntry.thumbUrl ? (
-                <img
+                <Image
                   src={publishEntry.thumbUrl}
                   alt={`${publishEntry.title} の共有サムネイル`}
+                  width={160}
+                  height={160}
                   style={{ width: 160, height: 'auto', borderRadius: 8, border: '1px solid #e2e8f0' }}
                 />
               ) : (
