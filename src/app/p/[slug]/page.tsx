@@ -15,11 +15,11 @@ export default async function PublicArtPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ slug: string }>;
-  searchParams?: Promise<SearchParams> | SearchParams;
+  params: { slug: string };
+  searchParams?: SearchParams;
 }) {
-  const { slug } = await params;
-  const resolvedSearch = searchParams ? await searchParams : {};
+  const { slug } = params;
+  const resolvedSearch = searchParams ?? {};
   const fromQuery = firstParam(resolvedSearch?.from);
   const pageParam = firstParam(resolvedSearch?.page);
   const sortParam = firstParam(resolvedSearch?.sort);

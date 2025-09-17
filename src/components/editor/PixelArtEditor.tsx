@@ -15,6 +15,27 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { DEFAULT_PALETTE_HEX } from '@/lib/palette';
 
+function clamp255(n: number) {
+  return Math.max(0, Math.min(255, Math.round(n)));
+}
+
+function toHex2(n: number) {
+  return clamp255(n).toString(16).padStart(2, '0');
+}
+
+function rgbToHexValue(r: number, g: number, b: number) {
+  return `#${toHex2(r)}${toHex2(g)}${toHex2(b)}`;
+}
+
+function hexToRgb(input: string): { r: number; g: number; b: number } {
+  const s = (input || '').trim();
+  const mHex = /^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(s);
+  if (mHex) return { r: parseInt(mHex[1], 16), g: parseInt(mHex[2], 16), b: parseInt(mHex[3], 16) };
+  const mRgb = /^rgb\s*\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i.exec(s);
+  if (mRgb) return { r: +mRgb[1], g: +mRgb[2], b: +mRgb[3] };
+  return { r: 255, g: 255, b: 255 };
+}
+
 export type PixelArtEditorProps = {
   id?: string;
   title: string;
@@ -240,23 +261,10 @@ export default function PixelArtEditor(props: PixelArtEditorProps) {
     setHistoryPtr(0);
   }
 
-  function hexToRgb(input: string): { r: number; g: number; b: number } {
-    // supports '#rrggbb' or 'rgb(r,g,b)'
-    const s = (input || '').trim();
-    const mHex = /^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(s);
-    if (mHex) return { r: parseInt(mHex[1], 16), g: parseInt(mHex[2], 16), b: parseInt(mHex[3], 16) };
-    const mRgb = /^rgb\s*\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i.exec(s);
-    if (mRgb) return { r: +mRgb[1], g: +mRgb[2], b: +mRgb[3] };
-    return { r: 255, g: 255, b: 255 };
-  }
-
-  function clamp255(n: number) { return Math.max(0, Math.min(255, Math.round(n))); }
-  function toHex2(n: number) { const s = clamp255(n).toString(16).padStart(2, '0'); return s; }
-  function rgbToHex(r: number, g: number, b: number) { return `#${toHex2(r)}${toHex2(g)}${toHex2(b)}`; }
   function applyRGB(r: number, g: number, b: number) {
     const rr = clamp255(r), gg = clamp255(g), bb = clamp255(b);
     setRVal(rr); setGVal(gg); setBVal(bb);
-    const hex = rgbToHex(rr, gg, bb);
+    const hex = rgbToHexValue(rr, gg, bb);
     setHexInput(hex);
     const next = palette.slice();
     next[color] = hex;
@@ -269,7 +277,7 @@ export default function PixelArtEditor(props: PixelArtEditorProps) {
     setRVal(clamp255(r));
     setGVal(clamp255(g));
     setBVal(clamp255(b));
-    setHexInput(rgbToHex(r, g, b));
+    setHexInput(rgbToHexValue(r, g, b));
   }, [color, palette]);
 
   // `pixels` 配列から PNG を生成して Data URL を返す（オフスクリーンキャンバス使用）

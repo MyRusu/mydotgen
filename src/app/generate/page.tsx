@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { pixelateFromImage } from '@/lib/image/pixelate';
@@ -92,7 +93,7 @@ export default function GeneratePage() {
         }
       }
     } catch {}
-  }, []);
+  }, [router, searchParams]);
 
   // プロンプト変更をローカルストレージへ保存
   useEffect(() => {
@@ -354,7 +355,14 @@ export default function GeneratePage() {
 
         {image && (
           <div style={{ marginTop: 16 }}>
-            <img src={image} alt="generated" style={{ maxWidth: '100%', imageRendering: 'pixelated' }} />
+            <Image
+              src={image}
+              alt="generated"
+              width={512}
+              height={512}
+              unoptimized
+              style={{ width: '100%', height: 'auto', imageRendering: 'pixelated' }}
+            />
             <div style={{ marginTop: 12, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               <button onClick={download} className="btn btn-outline btn-invert">ダウンロード</button>
               {status === 'authenticated' && (
