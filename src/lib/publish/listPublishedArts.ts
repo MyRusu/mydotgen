@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 
 type GallerySort = 'latest' | 'oldest' | 'title' | 'size';
 
@@ -54,17 +55,17 @@ export async function listPublishedArts({ page = 1, pageSize = 12, sort }: ListP
   const safePage = Math.max(page ?? 1, 1);
   const safeSort = normalizeSort(sort);
 
-  const orderBy = (() => {
+  const orderBy: Prisma.PublishEntryOrderByWithRelationInput[] = (() => {
     switch (safeSort) {
       case 'oldest':
-        return [{ updatedAt: 'asc' }];
+        return [{ updatedAt: 'asc' as const }];
       case 'title':
-        return [{ title: 'asc' }];
+        return [{ title: 'asc' as const }];
       case 'size':
-        return [{ art: { size: 'asc' } }, { updatedAt: 'desc' }];
+        return [{ art: { size: 'asc' as const } }, { updatedAt: 'desc' as const }];
       case 'latest':
       default:
-        return [{ updatedAt: 'desc' }];
+        return [{ updatedAt: 'desc' as const }];
     }
   })();
 

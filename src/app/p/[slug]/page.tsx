@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import type { Route } from 'next';
 import PixelArtPreview from '@/components/PixelArtPreview';
 import { getPublishedArtBySlug } from '@/lib/publish/getPublishedArt';
 import { renderMarkdownToHtml } from '@/lib/markdown/render';
@@ -27,7 +28,8 @@ export default async function PublicArtPage({
       galleryParams.set('sort', sortParam);
     }
   }
-  const galleryBackHref = galleryParams.toString() ? `/gallery?${galleryParams.toString()}` : '/gallery';
+  const galleryBackHref: Route = (galleryParams.toString() ? `/gallery?${galleryParams.toString()}` : '/gallery') as Route;
+  const galleryDefaultHref = '/gallery' as Route;
 
   const published = await getPublishedArtBySlug(slug);
   if (!published) return notFound();
@@ -79,7 +81,7 @@ export default async function PublicArtPage({
       </section>
 
       <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <Link href={fromGallery ? galleryBackHref : '/gallery'} className="btn btn-outline btn-sm">
+        <Link href={fromGallery ? galleryBackHref : galleryDefaultHref} className="btn btn-outline btn-sm">
           ギャラリーに戻る
         </Link>
       </div>

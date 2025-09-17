@@ -166,7 +166,7 @@ export default function GeneratePage() {
     if (!image) return;
     // DataURL を画像→gridサイズに縮小→16色パレットに量子化して pixels 配列を作る
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const i = new Image();
+      const i = document.createElement('img');
       i.onload = () => resolve(i);
       i.onerror = (e) => reject(e);
       i.src = image!;
@@ -196,12 +196,12 @@ export default function GeneratePage() {
     setError(null);
     try {
       // DataURL を元にグリッドへ縮小し、16色量子化して pixels 配列を作成
-      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-        const i = new Image();
-        i.onload = () => resolve(i);
-        i.onerror = (e) => reject(e);
-        i.src = image!;
-      });
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const i = document.createElement('img');
+      i.onload = () => resolve(i);
+      i.onerror = (e) => reject(e);
+      i.src = image!;
+    });
       const grid = outputSize;
       const c = document.createElement('canvas');
       c.width = grid;
@@ -235,7 +235,7 @@ export default function GeneratePage() {
   async function pixelateDataUrl(dataUrl: string, grid: 16 | 32 | 64): Promise<string> {
     // DataURL から画像を読み込み
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const i = new Image();
+      const i = document.createElement('img');
       i.onload = () => resolve(i);
       i.onerror = (e) => reject(e);
       i.src = dataUrl;

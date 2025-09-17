@@ -13,12 +13,12 @@ const QuerySchema = z.object({
 
 export const dynamic = 'force-dynamic';
 
-function buildPageLink(page: number, sort: string) {
+function buildPageLink(page: number, sort: string): Route {
   const params = new URLSearchParams();
   if (page > 1) params.set('page', String(page));
   if (sort !== 'latest') params.set('sort', sort);
   const query = params.toString();
-  return query ? `/gallery?${query}` : '/gallery';
+  return (query ? `/gallery?${query}` : '/gallery') as Route;
 }
 
 function buildDetailLink(slug: string, page: number, sort: string): Route {
