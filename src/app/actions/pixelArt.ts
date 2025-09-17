@@ -9,8 +9,6 @@
 
 import { parseWithZod } from '@conform-to/zod';
 import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
 import prisma from '@/lib/prisma';
 import { logEvent } from '@/lib/log';
 import {
@@ -20,27 +18,9 @@ import {
   PixelArtPublicUpdateSchema,
 } from '@/lib/schemas/pixelArt';
 import { PixelArtEditorFormSchema } from '@/lib/schemas/forms/pixelArtEditor';
+import { requireUserId } from '@/app/actions/_auth';
 
 export type SaveState = { ok?: boolean; errors?: string[] } | null;
-
-// Prisma の User を id=email で upsert（外部 ID をそのまま内部 ID として利用）
-async function ensureUser(userId: string, name?: string | null, image?: string | null) {
-  // id に email を採用し、存在しなければ作成（FK 整合用）
-  await prisma.user.upsert({
-    where: { id: userId },
-    update: { email: userId, name: name ?? undefined, image: image ?? undefined },
-    create: { id: userId, email: userId, name: name ?? undefined, image: image ?? undefined },
-  });
-}
-
-// サーバー側でログイン済みかを確認し、email を内部 ID として返す
-async function requireUserId(): Promise<string> {
-  const session = await getServerSession(authOptions);
-  const userId = (session?.user?.email as string | undefined) ?? '';
-  if (!userId) throw new Error('Unauthorized');
-  await ensureUser(userId, session?.user?.name ?? null, session?.user?.image ?? null);
-  return userId;
-}
 
 export async function createPixelArt(input: unknown) {
   const userId = await requireUserId();

@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import DeleteButtonForm from '@/components/DeleteButtonForm';
 import { deletePixelArt, updatePixelArtPublic } from '@/app/actions/pixelArt';
+import { upsertPublishEntry } from '@/app/actions/publishEntry';
 import PixelArtPreview from '@/components/PixelArtPreview';
 
 export default async function ArtDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -13,6 +14,11 @@ export default async function ArtDetailPage({ params }: { params: Promise<{ id: 
     select: { id: true, title: true, size: true, public: true, updatedAt: true, pixels: true },
   });
   if (!art) return notFound();
+
+  const publishEntry = await prisma.publishEntry.findFirst({
+    where: { artId: art.id },
+    select: { id: true, slug: true, title: true, body: true },
+  });
 
   async function onDelete(formData: FormData) {
     'use server';
@@ -27,6 +33,21 @@ export default async function ArtDetailPage({ params }: { params: Promise<{ id: 
     await updatePixelArtPublic({ id: art.id, public: !art.public });
     revalidatePath(`/art/${art.id}`);
     revalidatePath('/my/arts');
+  }
+
+  async function onSavePublish(formData: FormData) {
+    'use server';
+    const title = String(formData.get('publishTitle') ?? '').trim();
+    if (!title) return;
+    const slugValue = formData.get('publishSlug');
+    const bodyValue = formData.get('publishBody');
+    await upsertPublishEntry({
+      artId: art.id,
+      title,
+      slug: typeof slugValue === 'string' && slugValue.trim().length ? slugValue : undefined,
+      body: typeof bodyValue === 'string' ? bodyValue : undefined,
+    });
+    revalidatePath(`/art/${art.id}`);
   }
 
   return (
@@ -59,6 +80,61 @@ export default async function ArtDetailPage({ params }: { params: Promise<{ id: 
         <Link href={`/editor/${art.id}`} className="btn">この作品を編集</Link>
         <DeleteButtonForm id={art.id} action={onDelete} label="削除" confirmMessage="削除しますか？" />
       </div>
+
+      <section style={{ marginBottom: 32 }}>
+        <h2 style={{ marginBottom: 16, textAlign: 'center', fontSize: '1.25rem' }}>公開設定</h2>
+        <form
+          action={onSavePublish}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+            maxWidth: 640,
+            margin: '0 auto',
+            padding: 16,
+            border: '1px solid #e2e8f0',
+            borderRadius: 8,
+            backgroundColor: '#f8fafc',
+          }}
+        >
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span>公開タイトル</span>
+            <input
+              name="publishTitle"
+              type="text"
+              defaultValue={publishEntry?.title ?? art.title}
+              required
+              maxLength={100}
+              style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5f5' }}
+            />
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span>スラッグ（空欄なら自動生成）</span>
+            <input
+              name="publishSlug"
+              type="text"
+              defaultValue={publishEntry?.slug ?? ''}
+              maxLength={80}
+              pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+              style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5f5' }}
+            />
+            <span style={{ fontSize: 12, color: '#475569' }}>URL は `/p/スラッグ` の形式になります。</span>
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span>本文 (Markdown)</span>
+            <textarea
+              name="publishBody"
+              defaultValue={publishEntry?.body ?? ''}
+              maxLength={10000}
+              rows={8}
+              style={{ padding: 12, borderRadius: 6, border: '1px solid #cbd5f5', resize: 'vertical' }}
+            />
+          </label>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+            <button type="submit" className="btn">公開情報を保存</button>
+          </div>
+        </form>
+      </section>
 
       <div style={{ marginTop: 24, display: 'flex', justifyContent: 'center' }}>
         <Link href="/my/arts" className="btn btn-outline btn-sm">一覧へ戻る</Link>
