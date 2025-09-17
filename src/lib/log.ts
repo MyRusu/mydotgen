@@ -37,6 +37,9 @@ export function logEvent(name: string, props?: Record<string, unknown>) {
   const store = getStore();
   // counters: event name total
   incCounter(`events:${name}`, 1);
+  if (name.startsWith('publish.')) {
+    incCounter(`publish:${name.split('.').slice(1).join('.') || 'event'}`, 1);
+  }
   // keep recent 100
   const rec: EventRecord = { ts: Date.now(), name, props };
   store.events.push(rec);

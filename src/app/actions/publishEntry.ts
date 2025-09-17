@@ -84,6 +84,12 @@ export async function upsertPublishEntry(input: unknown): Promise<PublishEntryRe
     publishEntryId: result.id,
     slug: result.slug,
   });
+  logEvent('publish.save.success', {
+    userId,
+    artId: data.artId,
+    publishEntryId: result.id,
+    slug: result.slug,
+  });
 
   const artPixels = Array.isArray(art.pixels) ? (art.pixels as unknown[]).map((value) => Number(value) || 0) : [];
   let generatedThumbUrl: string | undefined;

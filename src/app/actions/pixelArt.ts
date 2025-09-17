@@ -80,6 +80,7 @@ export async function updatePixelArtPublic(input: unknown) {
     select: { id: true, public: true, updatedAt: true },
   });
   logEvent('pixel.publish.toggle', { userId, id: updated.id, public: updated.public });
+  logEvent(data.public ? 'publish.toggle.on' : 'publish.toggle.off', { userId, artId: updated.id });
   return updated;
 }
 
