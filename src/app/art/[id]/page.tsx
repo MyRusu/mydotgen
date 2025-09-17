@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import prisma from '@/lib/prisma';
 import { notFound, redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import DeleteButtonForm from '@/components/DeleteButtonForm';
-import { deletePixelArt } from '@/app/actions/pixelArt';
+import { deletePixelArt, updatePixelArtPublic } from '@/app/actions/pixelArt';
 import PixelArtPreview from '@/components/PixelArtPreview';
 
 export default async function ArtDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -19,6 +20,13 @@ export default async function ArtDetailPage({ params }: { params: Promise<{ id: 
     if (!id) return;
     await deletePixelArt(id);
     redirect('/my/arts');
+  }
+
+  async function onTogglePublic() {
+    'use server';
+    await updatePixelArtPublic({ id: art.id, public: !art.public });
+    revalidatePath(`/art/${art.id}`);
+    revalidatePath('/my/arts');
   }
 
   return (
@@ -42,7 +50,12 @@ export default async function ArtDetailPage({ params }: { params: Promise<{ id: 
         </div>
       </div>
 
-      <div style={{ marginBottom: 24, display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ marginBottom: 24, display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
+        <form action={onTogglePublic}>
+          <button type="submit" className="btn btn-outline">
+            {art.public ? '非公開にする' : '公開にする'}
+          </button>
+        </form>
         <Link href={`/editor/${art.id}`} className="btn">この作品を編集</Link>
         <DeleteButtonForm id={art.id} action={onDelete} label="削除" confirmMessage="削除しますか？" />
       </div>

@@ -17,6 +17,7 @@ import {
   PixelArtCreateInputSchema,
   PixelArtUpdateInputSchema,
   PixelArtIdSchema,
+  PixelArtPublicUpdateSchema,
 } from '@/lib/schemas/pixelArt';
 import { PixelArtEditorFormSchema } from '@/lib/schemas/forms/pixelArtEditor';
 
@@ -83,6 +84,23 @@ export async function deletePixelArt(input: unknown) {
   await prisma.pixelArt.delete({ where: { id } });
   logEvent('pixel.delete', { userId, id });
   return { ok: true } as const;
+}
+
+export async function updatePixelArtPublic(input: unknown) {
+  const userId = await requireUserId();
+  const data = PixelArtPublicUpdateSchema.parse(input);
+  const existing = await prisma.pixelArt.findUnique({
+    where: { id: data.id },
+    select: { userId: true },
+  });
+  if (!existing || existing.userId !== userId) throw new Error('Forbidden');
+  const updated = await prisma.pixelArt.update({
+    where: { id: data.id },
+    data: { public: data.public },
+    select: { id: true, public: true, updatedAt: true },
+  });
+  logEvent('pixel.publish.toggle', { userId, id: updated.id, public: updated.public });
+  return updated;
 }
 
 export async function getMyArts() {

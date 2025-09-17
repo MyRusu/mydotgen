@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import prisma from '@/lib/prisma';
-import { createPixelArt, updatePixelArt, deletePixelArt } from '@/app/actions/pixelArt';
+import { createPixelArt, updatePixelArt, deletePixelArt, updatePixelArtPublic } from '@/app/actions/pixelArt';
 
 vi.mock('next-auth', async () => {
   return {
@@ -36,6 +36,20 @@ describe('Server Actions: pixelArt basic', () => {
     expect(created.id).toBeTruthy();
     createdId = created.id;
 
+    // toggle public on
+    const toggledOn = await updatePixelArtPublic({ id: created.id, public: true });
+    expect(toggledOn.public).toBe(true);
+
+    const inDbAfterOn = await prisma.pixelArt.findUnique({ where: { id: created.id } });
+    expect(inDbAfterOn?.public).toBe(true);
+
+    // toggle public off
+    const toggledOff = await updatePixelArtPublic({ id: created.id, public: false });
+    expect(toggledOff.public).toBe(false);
+
+    const inDbAfterOff = await prisma.pixelArt.findUnique({ where: { id: created.id } });
+    expect(inDbAfterOff?.public).toBe(false);
+
     // update
     const updated = await updatePixelArt({ id: created.id, title: 'Updated', size: 16 as const, pixels: pixels16, public: false });
     expect(updated.title).toBe('Updated');
@@ -50,4 +64,3 @@ describe('Server Actions: pixelArt basic', () => {
     createdId = null;
   });
 });
-

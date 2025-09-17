@@ -42,6 +42,12 @@ export const PixelArtUpdateInputSchema = withPixelsLengthConstraint(
   PixelArtCoreSchema.extend({ id: PixelArtIdSchema })
 );
 
+export const PixelArtPublicUpdateSchema = z.object({
+  id: PixelArtIdSchema,
+  public: z.boolean(),
+});
+
 export type PixelArt = z.infer<typeof PixelArtSchema>;
 export type PixelArtCreateInput = z.infer<typeof PixelArtCreateInputSchema>;
 export type PixelArtUpdateInput = z.infer<typeof PixelArtUpdateInputSchema>;
+export type PixelArtPublicUpdateInput = z.infer<typeof PixelArtPublicUpdateSchema>;
