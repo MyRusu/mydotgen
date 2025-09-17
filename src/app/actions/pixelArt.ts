@@ -11,6 +11,7 @@ import { parseWithZod } from '@conform-to/zod';
 import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import { logEvent } from '@/lib/log';
+import { AppError } from '@/lib/errors';
 import {
   PixelArtCreateInputSchema,
   PixelArtUpdateInputSchema,
@@ -44,7 +45,14 @@ export async function updatePixelArt(input: unknown) {
   const data = PixelArtUpdateInputSchema.parse(input);
   // 所有権チェック
   const existing = await prisma.pixelArt.findUnique({ where: { id: data.id }, select: { userId: true } });
-  if (!existing || existing.userId !== userId) throw new Error('Forbidden');
+  if (!existing) {
+    logEvent('publish.error.not_found', { userId, artId: data.id });
+    throw new AppError('NOT_FOUND', 'PixelArt not found');
+  }
+  if (existing.userId !== userId) {
+    logEvent('publish.error.forbidden', { userId, artId: data.id });
+    throw new AppError('FORBIDDEN', 'You do not own this artwork');
+  }
   const updated = await prisma.pixelArt.update({
     where: { id: data.id },
     data: { title: data.title, size: data.size, public: data.public ?? false, pixels: data.pixels },
@@ -58,7 +66,14 @@ export async function deletePixelArt(input: unknown) {
   const userId = await requireUserId();
   const { id } = zodId(input);
   const existing = await prisma.pixelArt.findUnique({ where: { id }, select: { userId: true } });
-  if (!existing || existing.userId !== userId) throw new Error('Forbidden');
+  if (!existing) {
+    logEvent('publish.error.not_found', { userId, artId: id });
+    throw new AppError('NOT_FOUND', 'PixelArt not found');
+  }
+  if (existing.userId !== userId) {
+    logEvent('publish.error.forbidden', { userId, artId: id });
+    throw new AppError('FORBIDDEN', 'You do not own this artwork');
+  }
   await prisma.imageAsset.deleteMany({ where: { artId: id } });
   await prisma.publishEntry.deleteMany({ where: { artId: id } });
   await prisma.pixelArt.delete({ where: { id } });
@@ -73,7 +88,14 @@ export async function updatePixelArtPublic(input: unknown) {
     where: { id: data.id },
     select: { userId: true },
   });
-  if (!existing || existing.userId !== userId) throw new Error('Forbidden');
+  if (!existing) {
+    logEvent('publish.error.not_found', { userId, artId: data.id });
+    throw new AppError('NOT_FOUND', 'PixelArt not found');
+  }
+  if (existing.userId !== userId) {
+    logEvent('publish.error.forbidden', { userId, artId: data.id });
+    throw new AppError('FORBIDDEN', 'You do not own this artwork');
+  }
   const updated = await prisma.pixelArt.update({
     where: { id: data.id },
     data: { public: data.public },
@@ -116,7 +138,8 @@ export async function savePixelArt(prevState: SaveState, formData: FormData): Pr
     redirect(`/art/${created.id}`);
   } else {
     const existing = await prisma.pixelArt.findUnique({ where: { id }, select: { userId: true } });
-    if (!existing || existing.userId !== userId) return { ok: false, errors: ['Forbidden'] };
+    if (!existing) return { ok: false, errors: ['Not found'] };
+    if (existing.userId !== userId) return { ok: false, errors: ['Forbidden'] };
     await prisma.pixelArt.update({ where: { id }, data: { title, size, pixels } });
     logEvent('pixel.save.update', { userId, id, size, titleLen: title.length });
     redirect(`/art/${id}`);

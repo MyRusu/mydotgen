@@ -6,7 +6,9 @@ export type AppErrorCode =
   | 'RATE_LIMITED'
   | 'UPSTREAM_ERROR'
   | 'INVALID_CONFIG'
-  | 'INTERNAL_ERROR';
+  | 'INTERNAL_ERROR'
+  | 'FORBIDDEN'
+  | 'NOT_FOUND';
 
 export class AppError extends Error {
   code: AppErrorCode;
@@ -27,10 +29,14 @@ export function toHttpStatus(code: AppErrorCode): number {
   switch (code) {
     case 'BAD_REQUEST':
       return 400;
+    case 'FORBIDDEN':
+      return 403;
     case 'UNAUTHORIZED':
       return 401;
     case 'RATE_LIMITED':
       return 429;
+    case 'NOT_FOUND':
+      return 404;
     case 'INVALID_CONFIG':
       return 500;
     case 'UPSTREAM_ERROR':

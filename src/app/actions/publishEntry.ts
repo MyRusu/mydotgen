@@ -6,6 +6,7 @@ import { requireUserId } from '@/app/actions/_auth';
 import { PublishEntryEditorFormSchema } from '@/lib/schemas/forms/publishEntryEditor';
 import { createBaseSlug, composeSlugWithSuffix } from '@/lib/publish/slug';
 import { generateAndStoreShareThumbnail } from '@/lib/publish/shareThumbnail';
+import { AppError } from '@/lib/errors';
 
 export type PublishEntryResult = {
   id: string;
@@ -29,7 +30,7 @@ async function generateUniqueSlug(base: string, excludeId?: string): Promise<str
     }
     attempt += 1;
   }
-  throw new Error('Failed to generate unique slug');
+  throw new AppError('BAD_REQUEST', 'Unable to allocate unique slug');
 }
 
 export async function upsertPublishEntry(input: unknown): Promise<PublishEntryResult> {
@@ -39,8 +40,14 @@ export async function upsertPublishEntry(input: unknown): Promise<PublishEntryRe
     where: { id: data.artId },
     select: { id: true, userId: true, public: true, title: true, size: true, pixels: true },
   });
-  if (!art) throw new Error('NotFound');
-  if (art.userId !== userId) throw new Error('Forbidden');
+  if (!art) {
+    logEvent('publish.error.not_found', { userId, artId: data.artId });
+    throw new AppError('NOT_FOUND', 'PixelArt not found');
+  }
+  if (art.userId !== userId) {
+    logEvent('publish.error.forbidden', { userId, artId: data.artId });
+    throw new AppError('FORBIDDEN', 'You do not own this artwork');
+  }
 
   const existing = await prisma.publishEntry.findFirst({
     where: { artId: data.artId },
