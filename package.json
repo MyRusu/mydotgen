@@ -21,6 +21,7 @@
   "dependencies": {
     "@conform-to/react": "latest",
     "@conform-to/zod": "latest",
+    "@neondatabase/serverless": "^1.0.1",
     "@prisma/client": "latest",
     "dompurify": "^3.2.6",
     "jsdom": "^27.0.0",
@@ -44,6 +45,7 @@
     "prettier": "latest",
     "prisma": "latest",
     "typescript": "latest",
+    "vercel": "^25.2.0",
     "vitest": "^3.2.4"
   }
 }
